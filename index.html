@@ -2,416 +2,474 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Practical Network Mindmap — Real Components and How They Connect</title>
+  <title>Practical Network Mindmap - Real Components and Links</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    /* Big, print friendly canvas */
+    /* Visual theme with higher contrast for borders and edges */
     :root{
       --bg:#0f1221;
-      --panel:#11152d;
-      --card:#1a2042;
+      --panel:#0d1230;
+      --card:#151c45;
       --ink:#eef1ff;
-      --muted:#a8b0d4;
-      --edge:#3b4273;
-      --hub:#7aa2ff;
-      --leaf:#62e0a8;
-      --center:#ffb86b;
-      --radius:16px;
+      --muted:#b8c0e6;
+      --edge:#6ea3ff;
+      --edge-soft:#3c4576;
+      --center:#ffc86e;
+      --hub:#7fd8b2;
+      --leaf:#8fb0ff;
+      --radius:18px;
+      --outline:2px;
     }
-    html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif}
-    .bar{padding:12px 16px;background:var(--panel);border-bottom:1px solid #262d58;position:sticky;top:0;z-index:2}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif}
+    .bar{padding:12px 16px;background:var(--panel);border-bottom:1px solid #223063;position:sticky;top:0;z-index:3}
     .bar .t{font-weight:700;letter-spacing:.2px}
     .bar .hint{color:var(--muted);font-size:12px;margin-top:4px}
-    svg{width:100%;height:calc(100% - 60px);display:block}
-    .grid line{stroke:#18204a;stroke-width:1}
-    .edge{fill:none;stroke:var(--edge);stroke-width:2.2;stroke-linecap:round;opacity:.85}
-    .edge.center{stroke:var(--hub);opacity:1}
+    svg{width:100%;height:calc(100% - 70px);display:block}
+
+    /* Grid for orientation */
+    .grid line{stroke:#161d4b;stroke-width:1}
+
+    /* Edges with stronger visibility */
+    .edge{fill:none;stroke:var(--edge-soft);stroke-width:3;stroke-linecap:round;opacity:.9}
+    .edge.center{stroke:var(--edge);stroke-width:4;opacity:1}
+
+    /* Cards rendered inside foreignObject */
     .card{
-      background:linear-gradient(180deg,#1a1f3e 0%, var(--card) 100%);
-      border:1px solid #2a3266;
+      background:linear-gradient(180deg,#1b2354 0%, var(--card) 100%);
+      border:2px solid #3b58d1;
       border-radius:var(--radius);
       color:var(--ink);
-      box-shadow:0 14px 30px rgba(0,0,0,.28);
+      box-shadow:0 18px 36px rgba(0,0,0,.35);
       padding:12px 14px;
-      width:340px;
+      width:420px;
+      outline:var(--outline) solid rgba(255,255,255,.06);
     }
-    .card.center{ border-color:#a9773a }
-    .card.hub{ border-color:#4b63a8 }
-    .tag{display:inline-block;font-size:11px;color:#cfd6ff;background:#24306a;border:1px solid #33408f;border-radius:999px;padding:2px 6px;margin-bottom:6px}
-    .name{font-weight:700;margin:0 0 6px}
-    .what,.link{font-size:12px;color:var(--muted);margin:5px 0}
-    .legend{
-      position:fixed;left:10px;bottom:10px;z-index:2;
-      background:rgba(16,20,43,.9);border:1px solid #2a3266;border-radius:10px;
-      padding:8px 10px;color:var(--muted);font-size:12px;backdrop-filter:blur(6px)
+    .card.center{ border-color:#f3a84a; }
+    .card.hub{ border-color:#28c999; }
+    .card:hover{ outline-color:rgba(255,255,255,.25); }
+
+    .tag{display:inline-block;font-size:11px;color:#0f142d;background:#cfe2ff;border:1px solid #6ea3ff;border-radius:999px;padding:2px 8px;margin:0 6px 6px 0}
+    .tag.layer{ background:#c9f5e3;border-color:#28c999;color:#0d2a20 }
+    .name{font-weight:800;margin:2px 0 6px;letter-spacing:.2px}
+    .what,.link{font-size:12.5px;color:var(--muted);margin:6px 0}
+    .chips{display:flex;flex-wrap:wrap;margin-top:6px}
+
+    /* Fixed tooltip bottom-right, always on screen */
+    .tip{
+      position:fixed; right:18px; bottom:18px; z-index:4;
+      width:460px; max-height:50vh; overflow:auto;
+      background:rgba(13,18,48,.92);
+      border:2px solid #4e63d9; border-radius:14px;
+      box-shadow:0 14px 28px rgba(0,0,0,.45);
+      padding:12px 14px; backdrop-filter: blur(6px);
     }
-    .chip{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 6px -1px 8px}
-    .c1{background:var(--center)} .c2{background:var(--hub)} .c3{background:var(--leaf)}
+    .tip h3{margin:0 0 6px;font-size:14px}
+    .tip .mini{color:var(--muted);font-size:12px;margin:0 0 8px}
+    .tip .def{font-size:12.5px;margin:6px 0}
+    .tip code{background:#0d1438;border:1px solid #2c3a86;border-radius:6px;padding:0 6px;margin-right:6px;color:#bcd0ff}
+
     @media print{
       body{background:#fff}
-      .bar,.legend{display:none}
+      .bar,.tip{display:none}
       svg{height:100%}
     }
   </style>
 </head>
 <body>
   <div class="bar">
-    <div class="t">Practical Network Mindmap — Real Components and How They Connect</div>
-    <div class="hint">One big canvas. Zoom the page if needed. Each card explains what the thing does and how it links to others.</div>
+    <div class="t">Practical Network Mindmap - Real components and how they connect</div>
+    <div class="hint">Zoom the page if needed. Hover any card to see quick definitions for the main terms on the bottom-right panel.</div>
   </div>
 
-  <svg id="stage" viewBox="0 0 3600 2400" role="img" aria-label="Mindmap of tangible networking components and relationships"></svg>
+  <svg id="stage" viewBox="0 0 5200 3200" role="img" aria-label="Mindmap of tangible networking components and relationships"></svg>
 
-  <div class="legend">
-    <b>Legend</b>
-    <span class="chip c1"></span>Center
-    <span class="chip c2"></span>Category
-    <span class="chip c3"></span>Component
-    <span style="margin-left:10px">Curves show practical dependencies</span>
+  <!-- Sticky tooltip -->
+  <div id="tip" class="tip" aria-live="polite">
+    <h3>Hover a component</h3>
+    <p class="mini">You will see short, concrete definitions of the key terms here.</p>
+    <div class="def"><code>VLAN</code> Virtual LAN. Separate broadcast domains on the same switch.</div>
+    <div class="def"><code>SVI</code> Layer 3 interface on the switch. Default gateway for a VLAN.</div>
   </div>
 
   <script>
-    // Geometry helpers (simple and readable)
+    /* Minimal JS. Generates a static mindmap using SVG + foreignObject.
+       Goals:
+       - Stronger borders and spacing
+       - Category and layer tags per card
+       - Fixed tooltip with concise glossary for hovered card
+    */
+
+    /** Geometry helpers **/
     const toXY = (cx,cy,r,deg) => {
-      const rad = deg*Math.PI/180;
-      return { x: cx + r*Math.cos(rad), y: cy + r*Math.sin(rad) };
+      const rad = deg*Math.PI/180; return { x: cx + r*Math.cos(rad), y: cy + r*Math.sin(rad) };
     };
     const curvePath = (ax,ay,bx,by) => {
-      const mx = (ax+bx)/2, my = (ay+by)/2;
-      return `M ${ax} ${ay} C ${mx} ${ay}, ${mx} ${by}, ${bx} ${by}`;
+      const mx = (ax+bx)/2; return `M ${ax} ${ay} C ${mx} ${ay}, ${mx} ${by}, ${bx} ${by}`;
     };
 
-    // Data model: categories and concrete components with practical notes
+    /** Glossary of core concepts, including A1-A10 and common acronyms */
+    const GLOSSARY = {
+      // A1-A10 themes
+      "A1":"Segmentation, virtualization, and HA working together to contain faults and keep services up.",
+      "A2":"Inter-VLAN routing. Gateways on SVIs or router-on-a-stick so VLANs can talk safely.",
+      "A3":"Router operations. CEF in hardware, sane timers, correct MTU, and clean control plane.",
+      "A4":"Deployment schemes such as three-tier, collapsed core, and spine-leaf.",
+      "A5":"IOS services mapped to TCP/IP layers from management apps to link services.",
+      "A6":"Topology tradeoffs for scale, cost, and latency.",
+      "A7":"Monitoring tools. SNMP for health, NetFlow for flows, Syslog for reasons, PCAP for truth.",
+      "A8":"Operational metrics. Latency, jitter, loss, utilization, errors, flaps.",
+      "A9":"Standards from IEEE and IETF that make gear interoperable.",
+      "A10":"Security architecture. Identity at the edge, segmentation, firewalls, IDS/IPS, secure management.",
+
+      // L2
+      "VLAN":"Virtual LAN. Separate broadcast domains on one switch using 802.1Q tags.",
+      "802.1Q":"Trunk tagging standard. Inserts a 4-byte tag with VLAN ID.",
+      "TRUNK":"Link that carries multiple VLANs. Configure allowed VLANs and native VLAN.",
+      "STP":"Spanning Tree. Blocks loops and reconverges on link failure. RSTP is the faster variant.",
+      "MSTP":"Multiple Spanning Tree. Groups VLANs into instances to scale.",
+      "LACP":"Link Aggregation Control Protocol. Bonds links into one logical port-channel.",
+
+      // L3
+      "SVI":"Switched Virtual Interface. Layer 3 interface for a VLAN on a switch.",
+      "RoaS":"Router on a stick. Subinterfaces per VLAN over a trunk to a router.",
+      "OSPF":"Link-state IGP. Shortest path first, areas for scale, quick convergence.",
+      "EIGRP":"Cisco IGP. Fast convergence with DUAL. Choose one IGP per domain.",
+      "BGP":"Policy-based routing between autonomous systems. Internet and EVPN control plane.",
+      "NAT":"Network Address Translation. Hides private space and conserves public IPs.",
+
+      // Segmentation
+      "VRF":"Virtual Routing and Forwarding. Separate routing tables on one device.",
+      "VXLAN":"Overlay that carries L2 over L3 with UDP encapsulation. Requires higher MTU.",
+      "EVPN":"BGP extension to carry MAC/IP reachability for VXLAN overlays.",
+      "PVLAN":"Private VLAN. Isolates hosts at L2 within a single subnet.",
+
+      // HA
+      "HSRP":"Hot Standby Router Protocol. Virtual gateway with active and standby nodes.",
+      "VRRP":"Virtual Router Redundancy Protocol. Vendor-neutral virtual gateway.",
+      "ECMP":"Equal-Cost Multi-Path. Load sharing across equal routes.",
+      "DUAL-POWER":"Two PSUs and independent feeds for resilience.",
+
+      // Security
+      "ACL":"Access Control List. Permit or deny traffic by IP and port.",
+      "NGFW":"Next-Gen Firewall. Stateful filtering with application awareness.",
+      "IDS":"Intrusion Detection System. Detects malicious patterns. IPS can block.",
+      "802.1X":"Port-based authentication with RADIUS. Assigns VLAN/VRF by identity.",
+      "VPN":"Encrypted tunnels for remote access or site-to-site.",
+      "MFA":"Multi-Factor Authentication. Extra factor for identity assurance.",
+
+      // Telemetry
+      "SNMP":"Simple Network Management Protocol. Device counters and health.",
+      "NetFlow":"Flow export of conversations. IPFIX is a newer standard.",
+      "Syslog":"Central logging of device events and reasons.",
+      "SPAN":"Mirrors traffic to a capture port. RSPAN extends across switches.",
+      "PCAP":"Packet capture. Use Wireshark to inspect handshakes and errors.",
+
+      // Services
+      "DHCP":"Dynamic Host Configuration Protocol. Addresses and options to clients.",
+      "DNS":"Name resolution. A and AAAA records for IPv4 and IPv6.",
+      "NTP":"Network Time Protocol. Keeps clocks aligned for logs and TLS.",
+      "AAA":"Authentication, Authorization, Accounting via RADIUS or TACACS+.",
+
+      // Ops
+      "BACKUP":"Versioned configuration backups stored off-device.",
+      "TEMPLATE":"Reusable config snippets. Reduce drift and typos.",
+      "TEST":"Planned failover tests. Prove that redundancy works."
+    };
+
+    /** Data model: categories and concrete components with tags and layers */
     const model = {
       center: {
-        tag:"Network map",
-        name:"Real components and how they work together",
-        what:"A quick view of tangible pieces you configure day to day. Focus on what each tool does and which neighbors it relies on.",
-        link:"Use this to plan changes, test dependencies, and explain decisions."
+        tag:"Map",
+        name:"Real components and how they connect",
+        what:"Tangible pieces you configure in production. No fluff.",
+        link:"Use this to plan changes and spot dependencies fast.",
+        tags:["A1","A2","A3","A4","A5","A6","A7","A8","A9","A10"]
       },
       categories: [
-        { id:"L2",   tag:"Layer 2",        name:"Switching and loops" },
-        { id:"L3",   tag:"Layer 3",        name:"Routing and gateways" },
-        { id:"SEG",  tag:"Isolation",      name:"Segmentation and overlays" },
-        { id:"HA",   tag:"Resilience",     name:"High availability" },
-        { id:"SEC",  tag:"Security",       name:"Controls and boundaries" },
-        { id:"TEL",  tag:"Telemetry",      name:"Device and traffic visibility" },
-        { id:"SERV", tag:"Services",       name:"Identity and core services" },
-        { id:"OPS",  tag:"Operations",     name:"Backups and testing" }
+        { id:"L2",   tag:"Category", name:"Layer 2 - Switching and loops" },
+        { id:"L3",   tag:"Category", name:"Layer 3 - Routing and gateways" },
+        { id:"SEG",  tag:"Category", name:"Isolation - Segmentation and overlays" },
+        { id:"HA",   tag:"Category", name:"Resilience - High availability" },
+        { id:"SEC",  tag:"Category", name:"Security - Controls and boundaries" },
+        { id:"TEL",  tag:"Category", name:"Telemetry - Device and traffic visibility" },
+        { id:"SERV", tag:"Category", name:"Services - Identity and core services" },
+        { id:"OPS",  tag:"Category", name:"Operations - Backups and testing" }
       ],
       items: {
         L2: [
-          {
-            tag:"VLAN",
-            name:"VLAN (802.1Q tagging)",
-            what:"Creates separate broadcast domains on the same switch. Keeps departments or roles apart on one cable plant.",
-            link:"Feeds Inter VLAN routing on L3. Rides on trunks between switches. Controlled by STP and EtherChannel."
-          },
-          {
-            tag:"TRUNK",
-            name:"Trunks (802.1Q links)",
-            what:"Carry multiple VLANs over one uplink. Native and allowed lists control which VLANs pass.",
-            link:"Connects access to distribution or leaf to spine. Required for router on a stick and SVIs to see traffic."
-          },
-          {
-            tag:"STP",
-            name:"STP RSTP MSTP",
-            what:"Prevents loops by blocking redundant links and converging when a link fails.",
-            link:"Works below VLANs. Interacts with EtherChannel. Vital before you enable L3 to avoid broadcast storms."
-          },
-          {
-            tag:"LACP",
-            name:"EtherChannel LACP",
-            what:"Bonds links into one logical pipe. Increases throughput and adds link level redundancy.",
-            link:"Used under trunks and server uplinks. Helps HA at L2 and feeds stable paths to routing."
-          }
+          { tag:"VLAN", name:"VLAN (802.1Q)", layer:"L2",
+            what:"Separate broadcast domains on one switch.",
+            link:"Feeds inter-VLAN routing on L3. Rides on trunks. Controlled by STP and can use LACP.",
+            tags:["VLAN","802.1Q","A2"] },
+          { tag:"TRUNK", name:"Trunks", layer:"L2",
+            what:"Carry multiple VLANs on one uplink. Configure allowed list and native VLAN.",
+            link:"Connects access to distribution or leaf to spine. Needed for RoaS and SVI reachability.",
+            tags:["TRUNK","802.1Q","A2"] },
+          { tag:"STP", name:"STP / RSTP / MSTP", layer:"L2",
+            what:"Prevents loops. Recalculates paths when links change.",
+            link:"Protects L2 before enabling L3. Works with LACP and trunks.",
+            tags:["STP","MSTP"] },
+          { tag:"LACP", name:"EtherChannel (LACP)", layer:"L2",
+            what:"Bonds links into one logical port-channel.",
+            link:"Underpins resilient trunks and server uplinks. Helps HA at L2.",
+            tags:["LACP"] }
         ],
         L3: [
-          {
-            tag:"SVI",
-            name:"SVI gateways",
-            what:"Layer 3 interfaces on a switch. Give each VLAN its default gateway for inter VLAN traffic.",
-            link:"Depends on VLANs being present on the switch. Enforced by ACLs and QoS. Often paired with HSRP or VRRP."
-          },
-          {
-            tag:"RoaS",
-            name:"Router on a stick",
-            what:"One router interface with subinterfaces per VLAN. Good for labs or small sites.",
-            link:"Needs a trunk to the router. Replaced by SVIs when throughput or scale grows."
-          },
-          {
-            tag:"OSPF",
-            name:"OSPF",
-            what:"Link state IGP that finds shortest paths inside an AS. Fast convergence and areas for scale.",
-            link:"Advertises SVI networks and transit links. Feeds ECMP and provides stable routes for HA."
-          },
-          {
-            tag:"EIGRP",
-            name:"EIGRP",
-            what:"Advanced distance vector with quick convergence. Common in Cisco only shops.",
-            link:"Same role as OSPF. Choose one IGP per domain. Carries VLAN gateways and WAN routes."
-          },
-          {
-            tag:"BGP",
-            name:"BGP",
-            what:"Policy based routing between AS or large domains. Picks paths by attributes rather than only cost.",
-            link:"Used for internet edges, DC fabrics with EVPN, and multi provider WAN. Relies on stable underlay from OSPF or IS-IS."
-          },
-          {
-            tag:"NAT",
-            name:"NAT and PAT",
-            what:"Translates private to public and many to one ports. Hides internal space and conserves addresses.",
-            link:"Sits at borders with firewalls. Needs correct ACLs and route return paths to work cleanly."
-          }
+          { tag:"SVI", name:"SVI gateways", layer:"L3",
+            what:"Default gateway per VLAN on the switch.",
+            link:"Depends on VLAN presence. Works with ACL and QoS. Often fronted by HSRP or VRRP.",
+            tags:["SVI","A2","A3"] },
+          { tag:"RoaS", name:"Router on a stick", layer:"L3",
+            what:"Router subinterfaces per VLAN over one trunk.",
+            link:"Good for labs or small sites. Replaced by SVIs for scale.",
+            tags:["RoaS","802.1Q","A2"] },
+          { tag:"OSPF", name:"OSPF", layer:"L3",
+            what:"IGP with fast convergence and areas for scale.",
+            link:"Advertises gateway and transit subnets. Enables ECMP.",
+            tags:["OSPF","A3"] },
+          { tag:"EIGRP", name:"EIGRP", layer:"L3",
+            what:"Cisco IGP with quick convergence.",
+            link:"Alternative to OSPF in Cisco-only domains.",
+            tags:["EIGRP","A3"] },
+          { tag:"BGP", name:"BGP", layer:"L3",
+            what:"Policy routing between autonomous systems.",
+            link:"Edges, DC EVPN, multi-provider WAN. Needs stable underlay.",
+            tags:["BGP","EVPN","A3"] },
+          { tag:"NAT", name:"NAT / PAT", layer:"L3",
+            what:"Translate private to public, many to one with ports.",
+            link:"Lives at borders with firewalls. Needs proper return routes.",
+            tags:["NAT"] }
         ],
         SEG: [
-          {
-            tag:"VRF",
-            name:"VRF",
-            what:"Separate routing tables on the same box. Clean multi tenancy and environment separation.",
-            link:"Pairs with VLANs and ACLs. Carries its own OSPF or BGP instances. Basis for MPLS L3VPN and DC tenants."
-          },
-          {
-            tag:"VXLAN",
-            name:"VXLAN overlays",
-            what:"Encapsulates L2 over L3 so L2 segments can span the fabric. Good for VM mobility and clean boundaries.",
-            link:"Rides the underlay IGP. Often managed by EVPN control plane. MTU must be raised for encapsulation."
-          },
-          {
-            tag:"PVLAN",
-            name:"Private VLAN",
-            what:"Isolates hosts at L2 within one subnet. Isolated and community types restrict sideways talk.",
-            link:"Useful in DMZ or multi tenant racks. Uses a promiscuous port toward firewall or load balancer."
-          }
+          { tag:"VRF", name:"VRF", layer:"L3",
+            what:"Multiple routing tables on one device.",
+            link:"Pairs with VLAN and ACL. Each VRF runs its own routing.",
+            tags:["VRF","A1"] },
+          { tag:"VXLAN", name:"VXLAN overlays", layer:"L2 over L3",
+            what:"Encapsulate L2 over L3 for mobility and clean boundaries.",
+            link:"Rides underlay IGP. Often uses BGP EVPN. Raise MTU.",
+            tags:["VXLAN","EVPN","A1"] },
+          { tag:"PVLAN", name:"Private VLAN", layer:"L2",
+            what:"Isolate hosts inside one subnet. Isolated and community modes.",
+            link:"Great in DMZ or multi-tenant racks with a promiscuous gateway.",
+            tags:["PVLAN","A1"] }
         ],
         HA: [
-          {
-            tag:"HSRP",
-            name:"HSRP VRRP",
-            what:"Virtual gateway with two or more devices. One answers, the other takes over on failure.",
-            link:"Fronts SVIs or routed interfaces. Depends on L2 health and consistent ACL or QoS on both peers."
-          },
-          {
-            tag:"ECMP",
-            name:"ECMP",
-            what:"Equal cost multipath routes. Splits flows over multiple next hops.",
-            link:"Comes from IGP or BGP. Works best when hashing is predictable and links are similar."
-          },
-          {
-            tag:"DUAL",
-            name:"Dual power and paths",
-            what:"Two PSUs, two uplinks, two providers where reasonable. Removes a single failure from the equation.",
-            link:"Supports all layers. Combine with LACP and HSRP for smooth failover."
-          }
+          { tag:"HSRP", name:"HSRP / VRRP", layer:"L3",
+            what:"Virtual gateway. Standby takes over on failure.",
+            link:"Fronts SVIs or routed links. Needs consistent policy on peers.",
+            tags:["HSRP","VRRP","A1"] },
+          { tag:"ECMP", name:"ECMP", layer:"L3",
+            what:"Share flows across equal routes.",
+            link:"Comes from IGP or BGP. Works best with similar links.",
+            tags:["ECMP","A1"] },
+          { tag:"DUAL", name:"Dual power and paths", layer:"All",
+            what:"Two PSUs and independent uplinks or providers.",
+            link:"Backs every other control. Combine with LACP and HSRP.",
+            tags:["DUAL-POWER","A1"] }
         ],
         SEC: [
-          {
-            tag:"ACL",
-            name:"ACLs",
-            what:"Permit and deny lists at L2.5 or L3 that control which subnets and ports can talk.",
-            link:"Applied on SVIs, routed links, or device lines. Mirrors policy between IPv4 and IPv6."
-          },
-          {
-            tag:"NGFW",
-            name:"Next gen firewall",
-            what:"Stateful inspection with app awareness. Enforces policy at boundaries.",
-            link:"Sits between segments or to the internet. Uses routes from L3 and identities from AAA."
-          },
-          {
-            tag:"IDS",
-            name:"IDS IPS",
-            what:"Detects or blocks known attacks and anomalies in traffic.",
-            link:"In line or span fed. Tied to SIEM. Rules tuned using Syslog and flow data."
-          },
-          {
-            tag:"8021X",
-            name:"802.1X and NAC",
-            what:"Checks who and what connects at the port, then assigns the right VLAN or VRF.",
-            link:"Relies on RADIUS and directory. Works with dynamic ACLs and per user policy."
-          },
-          {
-            tag:"VPN",
-            name:"VPN and MFA",
-            what:"Encrypts remote access and site to site links. Adds identity checks.",
-            link:"Routes integrate with IGP or static. Management access must use secure protocols."
-          }
+          { tag:"ACL", name:"ACLs", layer:"L3/L2.5",
+            what:"Permit or deny traffic by IP and port.",
+            link:"Applied on SVIs, routed links, or vty lines. Mirror for IPv6.",
+            tags:["ACL","A10"] },
+          { tag:"NGFW", name:"Next gen firewall", layer:"L3/L7",
+            what:"Stateful filtering with app awareness.",
+            link:"Place at boundaries. Uses routes and identity from AAA.",
+            tags:["NGFW","A10"] },
+          { tag:"IDS", name:"IDS / IPS", layer:"L3/L7",
+            what:"Detect or block exploits. Signature and behavior based.",
+            link:"Inline or via SPAN. Feed alerts to SIEM.",
+            tags:["IDS","A10"] },
+          { tag:"8021X", name:"802.1X and NAC", layer:"L2",
+            what:"Port access by identity with RADIUS.",
+            link:"Assign VLAN or VRF dynamically. Supports per-user ACL.",
+            tags:["802.1X","AAA","A10"] },
+          { tag:"VPN", name:"VPN and MFA", layer:"L3/L7",
+            what:"Encrypted tunnels with strong identity.",
+            link:"Integrates with IGP or static routes. Lock down management.",
+            tags:["VPN","MFA","A10"] }
         ],
         TEL: [
-          {
-            tag:"SNMP",
-            name:"SNMP",
-            what:"Device health and counters. Interfaces, CPU, memory, errors.",
-            link:"Feeds NMS dashboards and alerts. Baseline before capacity changes."
-          },
-          {
-            tag:"FLOW",
-            name:"NetFlow IPFIX",
-            what:"Who talks to whom and how much. Top talkers and patterns.",
-            link:"Explains spikes and aids security. Pairs with ACL changes and QoS tuning."
-          },
-          {
-            tag:"SYSLOG",
-            name:"Syslog",
-            what:"Why a device made a decision at a given time. Config, routing, and security events.",
-            link:"Central store for audits and incident timelines. Time sync is critical."
-          },
-          {
-            tag:"SPAN",
-            name:"SPAN RSPAN",
-            what:"Mirrors packets to a capture box. Non intrusive inspection.",
-            link:"Used when you need truth on the wire. Wireshark rides this."
-          },
-          {
-            tag:"PCAP",
-            name:"Wireshark",
-            what:"Deep packet view. Handshakes, retransmits, options.",
-            link:"Confirms what SNMP and flow hint. Maps symptoms to the exact layer."
-          }
+          { tag:"SNMP", name:"SNMP", layer:"Mgmt",
+            what:"Device counters and health.",
+            link:"Feeds NMS dashboards, alerting, and capacity plans.",
+            tags:["SNMP","A7","A8"] },
+          { tag:"NetFlow", name:"NetFlow / IPFIX", layer:"Mgmt",
+            what:"Conversations and volumes.",
+            link:"Explains spikes, supports security investigations.",
+            tags:["NetFlow","A7"] },
+          { tag:"Syslog", name:"Syslog", layer:"Mgmt",
+            what:"Reasons and events from devices.",
+            link:"Central store for audits and incident timelines.",
+            tags:["Syslog","A7"] },
+          { tag:"SPAN", name:"SPAN / RSPAN", layer:"L2",
+            what:"Mirror packets to a capture port.",
+            link:"Use with Wireshark for exact on-wire truth.",
+            tags:["SPAN","A7"] },
+          { tag:"PCAP", name:"Wireshark", layer:"L2-L7",
+            what:"Deep packet analysis. Handshakes and errors.",
+            link:"Confirms what SNMP and flows suggest.",
+            tags:["PCAP","A7"] }
         ],
         SERV: [
-          {
-            tag:"DHCP",
-            name:"DHCP",
-            what:"Hands out IPs, gateways, and options to clients.",
-            link:"Must see the right VLANs. Relies on IP helpers and correct scopes."
-          },
-          {
-            tag:"DNS",
-            name:"DNS",
-            what:"Translates names to addresses for apps and services.",
-            link:"Records must exist for IPv4 and IPv6. Slow DNS feels like a broken app."
-          },
-          {
-            tag:"NTP",
-            name:"NTP",
-            what:"Keeps device clocks aligned so logs make sense.",
-            link:"All telemetry depends on time. TLS and Kerberos need it right."
-          },
-          {
-            tag:"AAA",
-            name:"RADIUS TACACS",
-            what:"Central login and command control for devices and users.",
-            link:"Backs 802.1X at the edge and admin sessions on routers and switches."
-          }
+          { tag:"DHCP", name:"DHCP", layer:"L3",
+            what:"Addresses and options for clients.",
+            link:"Needs IP helper across VLANs. Scopes per segment.",
+            tags:["DHCP"] },
+          { tag:"DNS", name:"DNS", layer:"App",
+            what:"Name resolution for apps.",
+            link:"A and AAAA records. Slow DNS feels like an outage.",
+            tags:["DNS"] },
+          { tag:"NTP", name:"NTP", layer:"Infra",
+            what:"Time sync for logs and crypto.",
+            link:"Telemetry and TLS rely on correct time.",
+            tags:["NTP"] },
+          { tag:"AAA", name:"RADIUS / TACACS+", layer:"Mgmt",
+            what:"Central auth and command control.",
+            link:"Backs 802.1X and admin sessions on routers and switches.",
+            tags:["AAA","802.1X"] }
         ],
         OPS: [
-          {
-            tag:"BACKUP",
-            name:"Config backups",
-            what:"Versioned copies of running and startup configs stored off box.",
-            link:"Rollback safety and audit trail. Needed before any change."
-          },
-          {
-            tag:"TEMPLATE",
-            name:"Templates and automation",
-            what:"Repeatable configs reduce typos and drift.",
-            link:"Enforces standards across VLANs, SVIs, routing, and ACLs."
-          },
-          {
-            tag:"TEST",
-            name:"Failover tests",
-            what:"Pull links and flip gateways on purpose to prove it works.",
-            link:"Validates HSRP, ECMP, and STP behavior under load."
-          }
+          { tag:"BACKUP", name:"Config backups", layer:"Ops",
+            what:"Versioned copies stored off the device.",
+            link:"Rollback safety and audit trail.",
+            tags:["BACKUP"] },
+          { tag:"TEMPLATE", name:"Templates and automation", layer:"Ops",
+            what:"Repeatable config for consistency.",
+            link:"Applies standards across VLAN, SVI, routing, and ACL.",
+            tags:["TEMPLATE"] },
+          { tag:"TEST", name:"Failover tests", layer:"Ops",
+            what:"Planned pulls and switchover.",
+            link:"Proves HSRP, ECMP, and STP under load.",
+            tags:["TEST","A1","A3"] }
         ]
       }
     };
 
-    // Layout: large radii and spacing to separate nodes
+    /** Layout: extra spacing so nodes do not crowd */
     const stage = document.getElementById('stage');
-    const center = { x: 1800, y: 1200 };
-    const hubRadius = 780;         // far from center
-    const hubSize = { w: 360, h: 150 };
-    const leafSize = { w: 360, h: 170 };
-    const hubAngles = [-90,-30,30,90,150,-150,180,0]; // 8 categories around
+    const center = { x: 2600, y: 1600 };
+    const hubRadius = 1150;                   // far from center
+    const hubSize = { w: 440, h: 180 };
+    const leafSize = { w: 440, h: 220 };
+    const hubAngles = [-90,-35,20,80,135,-155,180,0]; // 8 categories spaced
 
-    // Build hubs
+    // Compute hub positions
     const hubs = model.categories.map((c,i)=>{
       const p = toXY(center.x, center.y, hubRadius, hubAngles[i]);
       return { ...c, x: p.x - hubSize.w/2, y: p.y - hubSize.h/2 };
     });
 
-    // Build leaves far from hubs with stronger spread to avoid overlap
+    // Compute leaves with strong spread
     const leaves = [];
     hubs.forEach(h=>{
       const group = model.items[h.id] || [];
       const dir = { x: (h.x+hubSize.w/2) - center.x, y: (h.y+hubSize.h/2) - center.y };
       const len = Math.hypot(dir.x, dir.y) || 1;
-      const ux = dir.x/len, uy = dir.y/len;           // along ray
-      const px = -uy, py = ux;                        // perpendicular
-      group.forEach((leaf, i)=>{
-        const base = 340 + i*280;                     // distance from hub
-        const spread = (i - (group.length-1)/2) * 120;// wider lateral spread
+      const ux = dir.x/len, uy = dir.y/len;        // along ray
+      const px = -uy, py = ux;                     // perp for lateral spread
+      group.forEach((leaf,i)=>{
+        const base = 480 + i*360;                  // distance out from hub
+        const spread = (i - (group.length-1)/2) * 220; // strong lateral separation
         const cx = (h.x+hubSize.w/2) + ux*base + px*spread;
         const cy = (h.y+hubSize.h/2) + uy*base + py*spread;
         leaves.push({ parent:h.id, x: cx - leafSize.w/2, y: cy - leafSize.h/2, ...leaf });
       });
     });
 
-    // Draw background grid
+    /** Background grid */
     (function drawGrid(){
       const g = document.createElementNS("http://www.w3.org/2000/svg","g");
       g.setAttribute("class","grid");
-      for(let x=100;x<=3500;x+=100){
+      for(let x=100;x<=5100;x+=200){
         const line=document.createElementNS("http://www.w3.org/2000/svg","line");
         line.setAttribute("x1",x); line.setAttribute("y1",100);
-        line.setAttribute("x2",x); line.setAttribute("y2",2300);
+        line.setAttribute("x2",x); line.setAttribute("y2",3100);
         g.appendChild(line);
       }
-      for(let y=100;y<=2300;y+=100){
+      for(let y=100;y<=3100;y+=200){
         const line=document.createElementNS("http://www.w3.org/2000/svg","line");
         line.setAttribute("x1",100); line.setAttribute("y1",y);
-        line.setAttribute("x2",3500); line.setAttribute("y2",y);
+        line.setAttribute("x2",5100); line.setAttribute("y2",y);
         g.appendChild(line);
       }
       stage.appendChild(g);
     })();
 
-    // Draw edges: center to hubs, hubs to leaves
+    /** Draw edges */
     const gEdges = document.createElementNS("http://www.w3.org/2000/svg","g");
+    // center to hubs
     hubs.forEach(h=>{
-      const p = document.createElementNS("http://www.w3.org/2000/svg","path");
-      const ax = center.x + 170, ay = center.y + 80;
+      const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+      const ax = center.x + 210, ay = center.y + 100;
       const bx = h.x, by = h.y + hubSize.h/2;
-      p.setAttribute("d", curvePath(ax,ay,bx,by));
-      p.setAttribute("class","edge center");
-      stage.appendChild(p);
+      path.setAttribute("d", curvePath(ax,ay,bx,by));
+      path.setAttribute("class","edge center");
+      stage.appendChild(path);
     });
+    // hubs to leaves
     leaves.forEach(l=>{
       const hub = hubs.find(x=>x.id===l.parent);
-      const p = document.createElementNS("http://www.w3.org/2000/svg","path");
+      const path = document.createElementNS("http://www.w3.org/2000/svg","path");
       const ax = hub.x + hubSize.w, ay = hub.y + hubSize.h/2;
       const bx = l.x, by = l.y + leafSize.h/2;
-      p.setAttribute("d", curvePath(ax,ay,bx,by));
-      p.setAttribute("class","edge");
-      gEdges.appendChild(p);
+      path.setAttribute("d", curvePath(ax,ay,bx,by));
+      path.setAttribute("class","edge");
+      gEdges.appendChild(path);
     });
     stage.appendChild(gEdges);
 
-    // Utility to add a card via foreignObject
-    function addCard(x,y,cls,tag,name,what,link){
+    /** Utility to add a card via foreignObject */
+    function addCard({x,y,cls,tag,name,layer,what,link,tags}) {
       const fo = document.createElementNS("http://www.w3.org/2000/svg","foreignObject");
       fo.setAttribute("x", x); fo.setAttribute("y", y);
-      fo.setAttribute("width", 360); fo.setAttribute("height", 240);
+      fo.setAttribute("width", 440); fo.setAttribute("height", 300);
       const div = document.createElement("div");
-      div.setAttribute("class", `card ${cls}`);
+      div.setAttribute("class", `card ${cls||""}`);
+      // Build chips for layer and tags
+      const chipLayer = layer ? `<span class="tag layer">Layer: ${esc(layer)}</span>` : "";
+      const chipTags = (tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join("");
       div.innerHTML = `
-        <div class="tag">${esc(tag)}</div>
+        <div class="chips">${chipLayer}${chipTags}</div>
         <div class="name">${esc(name)}</div>
         <div class="what"><b>What it does</b>: ${esc(what)}</div>
         <div class="link"><b>How it links</b>: ${esc(link)}</div>
       `;
+      // Tooltip on hover
+      div.addEventListener('mouseenter', ()=> showTip(name, layer, tags));
+      div.addEventListener('focus', ()=> showTip(name, layer, tags));
       fo.appendChild(div);
       stage.appendChild(fo);
     }
     function esc(s){ return (s||"").replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;" }[m])); }
 
-    // Draw center, hubs, leaves with practical text
-    addCard(center.x-180, center.y-80, "center", model.center.tag, model.center.name, model.center.what, model.center.link);
-    hubs.forEach(h => addCard(h.x, h.y, "hub", h.tag, h.name,
-      "Defines the family of components and why you use them in production.",
-      "Connects to the center intent and to each component that implements this function."));
-    leaves.forEach(l => addCard(l.x, l.y, "", l.tag, l.name, l.what, l.link));
+    /** Tooltip renderer */
+    const tip = document.getElementById('tip');
+    function showTip(title, layer, keys=[]){
+      const unique = [...new Set(keys)];
+      const defs = unique.map(k=>{
+        const def = GLOSSARY[k] || "No short definition available.";
+        return `<div class="def"><code>${esc(k)}</code> ${esc(def)}</div>`;
+      }).join("");
+      const layerLine = layer ? `<div class="mini">Layer: ${esc(layer)}</div>` : "";
+      tip.innerHTML = `<h3>${esc(title)}</h3>${layerLine}${defs || '<p class="mini">No extra tags on this card.</p>'}`;
+    }
+
+    /** Draw cards: center, hubs, leaves */
+    addCard({ x:center.x-220, y:center.y-100, cls:"center",
+      name:model.center.name, layer:"All", what:model.center.what, link:model.center.link, tags:model.center.tags });
+
+    hubs.forEach(h => addCard({
+      x:h.x, y:h.y, cls:"hub", name:h.name, layer:"Category",
+      what:"Family of components you use in production.",
+      link:"Connects to the core map and the concrete parts below.",
+      tags:[]
+    }));
+
+    leaves.forEach(l => addCard({
+      x:l.x, y:l.y, name:l.name, layer:l.layer, what:l.what, link:l.link, tags:l.tags
+    }));
   </script>
 </body>
 </html>
