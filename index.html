@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Practical Network Mindmap — Touch Friendly + Troubleshooting</title>
+  <title>Practical Network Mindmap — Touch + Troubleshooting + Legend</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -20,7 +20,7 @@
     }
     html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;overflow:hidden}
     .bar{
-      position:fixed; inset:0 0 auto 0; z-index:5;
+      position:fixed; inset:0 0 auto 0; z-index:7;
       display:flex; align-items:center; gap:12px; flex-wrap:wrap;
       padding:12px 16px; background:var(--panel); border-bottom:1px solid #223063;
     }
@@ -33,34 +33,39 @@
     .btn:active{transform:translateY(1px)}
     .zoomval{color:#cfe2ff;font-weight:800;margin-left:6px;min-width:56px;display:inline-block}
 
+    /* Canvas */
     #stage{position:fixed; inset:56px 0 0 0; background:#0f1221; touch-action:none; cursor:grab; user-select:none}
     #stage.dragging{cursor:grabbing}
     #viewport{position:absolute; left:0; top:0; transform-origin:0 0; width:1px; height:1px}
 
+    /* Grid */
     #grid{position:absolute; left:0; top:0; width:1px; height:1px; overflow:visible; pointer-events:none}
     #grid line{stroke:#16204e;stroke-width:1}
 
+    /* Edges */
     #edges{position:absolute; left:0; top:0; width:1px; height:1px; overflow:visible; pointer-events:none}
     .edge{fill:none;stroke:var(--edge-soft);stroke-width:3.5;stroke-linecap:round;opacity:.95}
     .edge.center{stroke:var(--edge);stroke-width:4.5;opacity:1}
 
+    /* Cards */
     .card{
+      --bcol:#6ea3ff; /* per card border color */
       position:absolute;
       width:440px;
       max-height:300px;
       background:linear-gradient(180deg,#1b2354 0%, var(--card) 100%);
-      border:4px solid #6ea3ff;
+      border:5px solid var(--bcol);
       border-radius:var(--radius);
       color:var(--ink);
-      box-shadow:0 18px 36px rgba(0,0,0,.42);
+      box-shadow:0 18px 36px rgba(0,0,0,.42), 0 0 0 3px rgba(255,255,255,.08), 0 0 32px var(--bcol);
       padding:12px 14px;
       outline:2px solid rgba(255,255,255,.12);
-      overflow:auto; /* scroll if troubleshooting text is long */
+      overflow:auto;
       scrollbar-width:thin;
       scrollbar-color:#6ea3ff #0e1333;
     }
-    .card.center{ border-color:var(--accent3) }
-    .card.hub{ border-color:var(--accent2) }
+    .card.center{ --bcol: var(--accent3) }
+    .card.hub{ --bcol: var(--accent2) }
     .card:hover{ outline-color:rgba(255,255,255,.28) }
 
     .chips{display:flex;flex-wrap:wrap;margin:6px 0}
@@ -77,8 +82,9 @@
     .tline{font-size:12.5px;color:#d7ddff;margin:4px 0;display:flex;gap:8px;align-items:flex-start}
     .dot{width:6px;height:6px;border-radius:50%;background:#a3c4ff;flex:0 0 6px;position:relative;top:6px}
 
+    /* Sticky tooltip */
     .tip{
-      position:fixed; right:18px; bottom:18px; z-index:6;
+      position:fixed; right:18px; bottom:18px; z-index:8;
       width:520px; max-height:50vh; overflow:auto;
       background:rgba(13,18,48,.95);
       border:2px solid var(--accent); border-radius:14px;
@@ -89,6 +95,21 @@
     .tip .mini{color:var(--muted);font-size:12px;margin:0 0 8px}
     .tip .def{font-size:12.5px;margin:6px 0}
     .tip code{background:#0d1438;border:1px solid #2c3a86;border-radius:6px;padding:0 6px;margin-right:6px;color:#bcd0ff}
+
+    /* Legend panel */
+    .legend{
+      position:fixed; left:12px; top:72px; z-index:8;
+      width:340px; max-height:70vh; overflow:auto;
+      background:rgba(12,18,48,.95);
+      border:2px solid #3953c7; border-radius:14px;
+      box-shadow:0 14px 28px rgba(0,0,0,.45);
+      padding:12px 14px;
+    }
+    .legend h4{margin:0 0 8px}
+    .lg-row{display:flex; align-items:flex-start; gap:10px; margin:8px 0}
+    .sw{width:18px; height:18px; border-radius:6px; box-shadow:0 0 0 2px rgba(255,255,255,.2) inset}
+    .lg-body{font-size:12.5px; color:#dfe6ff}
+    .lg-mini{color:#b8c0e6; font-size:12px}
   </style>
 </head>
 <body>
@@ -101,6 +122,35 @@
     <span class="zoomval" id="zoomVal">100%</span>
     <span class="hint">Drag or one finger to pan. Pinch to zoom. Double tap to zoom in.</span>
   </div>
+
+  <!-- Color legend with practical examples -->
+  <aside id="legend" class="legend" aria-label="Color legend">
+    <h4>Color legend</h4>
+    <div class="lg-row"><div class="sw" style="background:#8ecbff"></div>
+      <div class="lg-body"><b>Layer 2</b> VLAN, trunks, spanning tree, EtherChannel. <div class="lg-mini">Segmentation and loop control.</div></div>
+    </div>
+    <div class="lg-row"><div class="sw" style="background:#6ef3a5"></div>
+      <div class="lg-body"><b>Layer 3</b> SVIs, router on a stick, OSPF, EIGRP, BGP, NAT. <div class="lg-mini">Routing, gateways, policies.</div></div>
+    </div>
+    <div class="lg-row"><div class="sw" style="background:#f7c66b"></div>
+      <div class="lg-body"><b>Segmentation overlays</b> VRF, VXLAN, EVPN, PVLAN. <div class="lg-mini">Multi tenant and lateral control.</div></div>
+    </div>
+    <div class="lg-row"><div class="sw" style="background:#ff8aa6"></div>
+      <div class="lg-body"><b>High availability</b> HSRP or VRRP, ECMP, dual power or paths. <div class="lg-mini">No single point of failure.</div></div>
+    </div>
+    <div class="lg-row"><div class="sw" style="background:#d59cff"></div>
+      <div class="lg-body"><b>Security</b> ACL, NGFW, IDS, 802.1X, VPN. <div class="lg-mini">Boundaries and identity.</div></div>
+    </div>
+    <div class="lg-row"><div class="sw" style="background:#7cd8ff"></div>
+      <div class="lg-body"><b>Telemetry</b> SNMP, NetFlow, Syslog, SPAN, PCAP. <div class="lg-mini">Health, traffic, events, evidence.</div></div>
+    </div>
+    <div class="lg-row"><div class="sw" style="background:#a8f471"></div>
+      <div class="lg-body"><b>Services</b> DHCP, DNS, NTP, AAA. <div class="lg-mini">Addresses, names, time, access.</div></div>
+    </div>
+    <div class="lg-row"><div class="sw" style="background:#ffd16e"></div>
+      <div class="lg-body"><b>Operations</b> Backups, templates, failover tests. <div class="lg-mini">Recovery and consistency.</div></div>
+    </div>
+  </aside>
 
   <div id="stage" aria-label="Mindmap canvas">
     <div id="viewport">
@@ -118,7 +168,17 @@
   </div>
 
   <script>
-    /* Touch friendly pan and zoom with troubleshooting content */
+    /* Color map per category for borders and legend */
+    const COLORS = {
+      L2:"#8ecbff",
+      L3:"#6ef3a5",
+      SEG:"#f7c66b",
+      HA:"#ff8aa6",
+      SEC:"#d59cff",
+      TEL:"#7cd8ff",
+      SERV:"#a8f471",
+      OPS:"#ffd16e"
+    };
 
     const GLOSSARY = {
       "VLAN":"Virtual local area network, separate broadcast domains on one switch (VLAN).",
@@ -377,11 +437,12 @@
 
     function N(tag,name,tags,what,link,tsLines){ return { tag,name,tags,what,link,ts:tsLines||[] }; }
 
-    /* Layout: cards closer but not overlapping */
+    /* Layout */
     const CARD_W = 440, CARD_H = 300;
+
     const centerNode = {
       x:-CARD_W/2, y:-CARD_H/2, w:CARD_W, h:CARD_H,
-      name:model.center.name, tags:model.center.tags, what:model.center.what, link:model.center.link, cls:"center", ts:model.center.ts
+      name:model.center.name, tags:model.center.tags, what:model.center.what, link:model.center.link, cls:"center", ts:model.center.ts, col:"#f3a84a"
     };
 
     const hubRadius = 1700;
@@ -393,9 +454,11 @@
       const p = polar(0,0,hubRadius,hubAngles[i]);
       const hub = {
         id:c.id, name:c.name, tags:["L2","L3","Mgmt","Ops"],
-        what:"Family of components used in production.",
+        what:"Family of production components.",
         link:"Connects to the core and to the parts below.",
-        x:p.x - CARD_W/2, y:p.y - 80, w:CARD_W, h:200, cls:"hub", ts:["If many leaves break at once check this hub first.","Confirm edges and VLAN or routing between hub and leaves."]
+        x:p.x - CARD_W/2, y:p.y - 80, w:CARD_W, h:200, cls:"hub",
+        ts:["If many leaves break at once check this hub first.","Confirm edges and VLAN or routing between hub and leaves."],
+        col: COLORS[c.id] || "#6ea3ff"
       };
       hubs.push(hub);
 
@@ -409,14 +472,17 @@
         const cx = p.x + dir.x*base + perp.x*spread;
         const cy = p.y + dir.y*base + perp.y*spread;
         leaves.push({
-          parent:c.id, name:leaf.name, tags:[...leaf.tags], what:leaf.what, link:leaf.link, ts:leaf.ts||[],
-          x: cx - CARD_W/2, y: cy - CARD_H/2, w:CARD_W, h:CARD_H, cls:""
+          parent:c.id,
+          name:leaf.name, tags:[...leaf.tags], what:leaf.what, link:leaf.link, ts:leaf.ts||[],
+          x: cx - CARD_W/2, y: cy - CARD_H/2, w:CARD_W, h:CARD_H, cls:"",
+          col: COLORS[c.id] || "#6ea3ff"
         });
       });
     });
 
     separateCards([centerNode, ...hubs, ...leaves], 10);
 
+    /* Render */
     const stage = document.getElementById('stage');
     const viewport = document.getElementById('viewport');
     const grid = document.getElementById('grid');
@@ -437,7 +503,7 @@
     hubs.forEach(addCard);
     leaves.forEach(addCard);
 
-    /* Pan and zoom with mouse and touch */
+    /* Pan and zoom */
     let scale = 1, minScale = 0.35, maxScale = 2.6;
     let tx = stage.clientWidth/2, ty = stage.clientHeight/2;
     applyTransform();
@@ -494,7 +560,7 @@
 
       if(pointers.size === 0){
         stage.classList.remove('dragging');
-        startKinetic();
+        startKinetic(); // inertia after pan
       }
       if(pointers.size < 2){
         pinchStart = null;
@@ -523,6 +589,7 @@
       lastTap = now;
     });
 
+    /* Tooltip */
     function showTip(title, tags){
       const defs = (tags||[])
         .map(t => GLOSSARY[t])
@@ -534,6 +601,7 @@
     }
     function getAcr(text){ const m = text.match(/\(([^)]+)\)\.?$/); return m ? m[1] : "INFO"; }
 
+    /* Cards */
     function addCard(n){
       const el = document.createElement('div');
       el.className = `card ${n.cls||""}`;
@@ -541,6 +609,10 @@
       el.style.top  = n.y + "px";
       el.style.width = n.w + "px";
       el.style.height = n.h + "px";
+      if(n.col){
+        el.style.setProperty('--bcol', n.col);
+        el.style.boxShadow = `0 18px 36px rgba(0,0,0,.42), 0 0 0 3px rgba(255,255,255,.08), 0 0 32px ${n.col}`;
+      }
 
       const chips = (n.tags||[]).map(t=>`<span class="tag">${escapeHTML(t)}</span>`).join("");
       const ts = (n.ts||[]).map(line=>`
@@ -558,6 +630,7 @@
       nodes.appendChild(el);
     }
 
+    /* Grid and edges */
     function drawGrid(x,y,w,h,step){
       grid.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
       for(let gx=x; gx<=x+w; gx+=step){
@@ -573,7 +646,6 @@
         grid.appendChild(ln);
       }
     }
-
     function drawEdge(ax,ay,bx,by,isCenter){
       const path = document.createElementNS("http://www.w3.org/2000/svg","path");
       const mx = (ax+bx)/2;
@@ -582,15 +654,15 @@
       edges.appendChild(path);
     }
 
+    /* Transform */
     function applyTransform(){
       viewport.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
-      zoomVal.textContent = Math.round(scale*100) + "%";
+      document.getElementById('zoomVal').textContent = Math.round(scale*100) + "%";
     }
     function centerOn(x,y){
       tx = stage.clientWidth/2 - x*scale;
       ty = stage.clientHeight/2 - y*scale;
     }
-
     function fitToContent(){
       const boxes = [centerNode, ...hubs, ...leaves];
       const b = boxes.reduce((o,r)=>({
@@ -612,7 +684,6 @@
 
       applyTransform();
     }
-
     function smoothZoomAt(sx,sy,factor){
       const prev = scale;
       const target = clamp(prev*factor, minScale, maxScale);
@@ -637,14 +708,15 @@
       requestAnimationFrame(step);
     }
 
+    /* Pan inertia: reduced to ~half as requested */
     function startKinetic(){
-      const decay = 0.95;
+      const decay = 0.92; // stronger decay
       const minVel = 0.02;
       const frame = ()=>{
         vx *= decay; vy *= decay;
         if(Math.abs(vx) < minVel && Math.abs(vy) < minVel){ kineticId = 0; return; }
-        tx += vx * 16 * 14;
-        ty += vy * 16 * 14;
+        tx += vx * 16 * 7;   // lower distance per frame (was 14)
+        ty += vy * 16 * 7;
         applyTransform();
         kineticId = requestAnimationFrame(frame);
       };
@@ -653,6 +725,9 @@
     }
     function stopKinetic(){ if(kineticId){ cancelAnimationFrame(kineticId); kineticId = 0; } }
 
+    /* Pinch */
+    const pointers = new Map();
+    let pinchStart = null, lastPanTime = 0, vx = 0, vy = 0, kineticId = 0;
     function initPinch(){
       const pts = Array.from(pointers.values());
       const c = mid(pts[0], pts[1]);
@@ -672,6 +747,7 @@
       applyTransform();
     }
 
+    /* Collision separation */
     function separateCards(list, passes){
       for(let k=0;k<passes;k++){
         for(let i=0;i<list.length;i++){
@@ -694,6 +770,7 @@
       return !(a.x+a.w+12 < b.x || b.x+b.w+12 < a.x || a.y+a.h+12 < b.y || b.y+b.h+12 < a.y);
     }
 
+    /* Math and utils */
     function polar(cx,cy,r,deg){ const t=deg*Math.PI/180; return {x:cx+r*Math.cos(t), y:cy+r*Math.sin(t)}; }
     function norm(v){ const n=Math.hypot(v.x,v.y)||1; return {x:v.x/n, y:v.y/n}; }
     function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
@@ -701,7 +778,50 @@
     function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
     function mid(a,b){ return {x:(a.x+b.x)/2, y:(a.y+b.y)/2}; }
     function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
-    function getAcr(text){ const m = text.match(/\(([^)]+)\)\.?$/); return m ? m[1] : "INFO"; }
+
+    /* Events bind for pointers (declared after pinch helpers to keep scope tidy) */
+    stage.addEventListener('pointerdown', e=>{
+      stage.setPointerCapture(e.pointerId);
+      pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+      stopKinetic();
+      if(pointers.size === 1){ stage.classList.add('dragging'); lastPanTime = performance.now(); }
+      if(pointers.size === 2){ pinchStart = initPinch(); }
+    });
+    stage.addEventListener('pointermove', e=>{
+      const p = pointers.get(e.pointerId);
+      if(!p) return;
+      const now = performance.now();
+      const prev = {x:p.x, y:p.y};
+      p.x = e.clientX; p.y = e.clientY;
+      if(pointers.size === 1 && !pinchStart){
+        const dt = Math.max(1, now - lastPanTime);
+        const dx = p.x - prev.x, dy = p.y - prev.y;
+        tx += dx; ty += dy; vx = dx/dt; vy = dy/dt; lastPanTime = now; applyTransform();
+      }
+      if(pinchStart && pointers.size === 2){ doPinch(pinchStart); }
+    });
+    stage.addEventListener('pointerup', e=>{
+      stage.releasePointerCapture(e.pointerId); pointers.delete(e.pointerId);
+      if(pointers.size === 0){ stage.classList.remove('dragging'); startKinetic(); }
+      if(pointers.size < 2){ pinchStart = null; }
+    });
+    stage.addEventListener('pointercancel', e=>{
+      pointers.delete(e.pointerId); stage.classList.remove('dragging'); pinchStart = null;
+    });
+    stage.addEventListener('wheel', e=>{
+      e.preventDefault();
+      const rect = stage.getBoundingClientRect();
+      smoothZoomAt(e.clientX - rect.left, e.clientY - rect.top, Math.exp((-e.deltaY) * 0.0018));
+    }, {passive:false});
+    let lastTap2=0;
+    stage.addEventListener('pointerdown', e=>{
+      const now = performance.now();
+      if(now - lastTap2 < 280 && pointers.size === 1){
+        const rect = stage.getBoundingClientRect();
+        smoothZoomAt(e.clientX - rect.left, e.clientY - rect.top, 1.25);
+      }
+      lastTap2 = now;
+    });
   </script>
 </body>
 </html>
