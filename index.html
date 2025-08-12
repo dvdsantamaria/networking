@@ -2,21 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Practical Network Mindmap — Real Components and Links</title>
+  <title>Practical Network Mindmap — Components and Links</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    /* High-contrast theme and fixed UI */
+    /* Layout and theme */
     :root{
       --bg:#0f1221;
       --panel:#0c1230;
       --card:#151c45;
       --ink:#eef1ff;
       --muted:#b8c0e6;
-      --edge:#7cb2ff;
-      --edge-soft:#3c4576;
+      --edge:#89bdff;
+      --edge-soft:#405089;
       --center:#ffc86e;
-      --hub:#1fe1ae;
-      --leaf:#7aa2ff;
+      --hub:#20e6b2;
       --radius:18px;
     }
     html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;overflow:hidden}
@@ -34,35 +33,50 @@
     .btn:active{transform:translateY(1px)}
     .zoomval{color:#cfe2ff;font-weight:700;margin-left:6px}
 
-    /* Canvas occupies the rest. No viewBox to simplify math for pan/zoom */
-    #stage{position:fixed; inset:48px 0 0 0; width:100%; height:calc(100% - 48px); display:block; background:#0f1221}
-    .grid line{stroke:#18204a;stroke-width:1}
+    /* Stage with true pan and zoom */
+    #stage{position:fixed; inset:48px 0 0 0; background:#0f1221; cursor:grab; user-select:none}
+    #stage.dragging{cursor:grabbing}
+    #viewport{
+      position:absolute; left:0; top:0; transform-origin:0 0;
+      /* Big content area so everything fits without browser zoom */
+      width:1px; height:1px; /* size is irrelevant, transform moves content */
+    }
 
-    .edge{fill:none;stroke:var(--edge-soft);stroke-width:3;stroke-linecap:round;opacity:.9}
+    /* Background grid in content space */
+    #grid{position:absolute; left:0; top:0; width:1px; height:1px; overflow:visible; pointer-events:none}
+    #grid line{stroke:#16204e;stroke-width:1}
+
+    /* Edges as SVG, overflow visible so paths can extend anywhere */
+    #edges{position:absolute; left:0; top:0; width:1px; height:1px; overflow:visible; pointer-events:none}
+    .edge{fill:none;stroke:var(--edge-soft);stroke-width:3;stroke-linecap:round;opacity:.95}
     .edge.center{stroke:var(--edge);stroke-width:4;opacity:1}
 
-    /* Cards inside foreignObject for rich text */
+    /* Cards as simple HTML for reliable events and performance */
     .card{
+      position:absolute;
+      width:460px;
       background:linear-gradient(180deg,#1b2354 0%, var(--card) 100%);
       border:3px solid #3b58d1;
       border-radius:var(--radius);
       color:var(--ink);
       box-shadow:0 18px 36px rgba(0,0,0,.42);
       padding:12px 14px;
-      width:440px;
       outline:2px solid rgba(255,255,255,.10);
     }
     .card.center{ border-color:#f3a84a }
-    .card.hub{ border-color:#1fe1ae }
+    .card.hub{ border-color:#20e6b2 }
     .card:hover{ outline-color:rgba(255,255,255,.28) }
 
     .chips{display:flex;flex-wrap:wrap;margin:6px 0}
-    .tag{display:inline-block;font-size:11px;color:#0f142d;background:#cfe2ff;border:1px solid #6ea3ff;border-radius:999px;padding:2px 8px;margin:0 6px 6px 0}
-    .tag.layer{ background:#c9f5e3;border-color:#1fe1ae;color:#0d2a20 }
+    .tag{
+      display:inline-block;font-size:11px;
+      color:#0f142d;background:#cfe2ff;border:1px solid #6ea3ff;border-radius:999px;
+      padding:2px 8px;margin:0 6px 6px 0
+    }
     .name{font-weight:800;margin:2px 0 6px;letter-spacing:.2px}
     .what,.link{font-size:12.5px;color:var(--muted);margin:6px 0}
 
-    /* Fixed tooltip bottom-right. Always visible while panning/zooming */
+    /* Fixed tooltip bottom-right, never moves with zoom */
     .tip{
       position:fixed; right:18px; bottom:18px; z-index:6;
       width:520px; max-height:50vh; overflow:auto;
@@ -79,496 +93,403 @@
 </head>
 <body>
   <div class="bar">
-    <div class="title">Practical Network Mindmap (pan, zoom, learn)</div>
+    <div class="title">Practical Network Mindmap</div>
     <button class="btn" id="btnZoomOut">Zoom −</button>
     <button class="btn" id="btnZoomIn">Zoom +</button>
     <button class="btn" id="btnFit">Fit</button>
     <button class="btn" id="btnReset">Reset</button>
     <span class="zoomval" id="zoomVal">100%</span>
-    <span class="hint">Drag to pan. Wheel to zoom at cursor. Header and tooltip stay fixed.</span>
+    <span class="hint">Drag to pan. Wheel to zoom at cursor. Header and tooltip do not move.</span>
   </div>
 
-  <svg id="stage" role="img" aria-label="Mindmap of tangible networking components and relationships">
-    <!-- Grid in content space -->
-    <g id="viewport">
-      <g class="grid" id="grid"></g>
-      <g id="edges"></g>
-      <g id="nodes"></g>
-    </g>
-  </svg>
+  <div id="stage" aria-label="Mindmap canvas">
+    <div id="viewport">
+      <svg id="grid"></svg>
+      <svg id="edges"></svg>
+      <div id="nodes"></div>
+    </div>
+  </div>
 
-  <!-- Sticky tooltip -->
   <div id="tip" class="tip" aria-live="polite">
     <h3>Hover a component</h3>
-    <p class="mini">You will see short, concrete definitions of the key terms here.</p>
-    <div class="def"><code>VLAN</code> Virtual LAN. Separate broadcast domains on the same switch.</div>
-    <div class="def"><code>SVI</code> Layer 3 interface on the switch. Default gateway for a VLAN.</div>
+    <p class="mini">You will see short, plain definitions here. Always meaning first, acronym in parentheses.</p>
+    <div class="def"><code>VLAN</code> Virtual local area network, separate broadcast domains on one switch (VLAN).</div>
+    <div class="def"><code>SVI</code> Layer 3 interface on a switch that acts as the default gateway for a VLAN (SVI).</div>
   </div>
 
   <script>
-    /* ---------------------------
-       BASIC DATA (no assessment refs)
-       --------------------------- */
+    /* ---------------------------------------------------------
+       Lightweight pan and zoom
+       - HTML cards positioned absolutely in a virtual space
+       - One SVG for edges and one SVG for the grid
+       - A single CSS transform on #viewport does the zoom
+       --------------------------------------------------------- */
 
-    // Concise glossary for tooltip (pure technical)
+    // Simple glossary with meaning first, acronym in parentheses
     const GLOSSARY = {
-      "VLAN":"Virtual LAN. Separate broadcast domains on one switch using 802.1Q tags.",
-      "802.1Q":"Trunk tagging standard. Inserts a 4-byte VLAN tag.",
-      "TRUNK":"Link that carries multiple VLANs. Configure allowed VLANs and native VLAN.",
-      "STP":"Spanning Tree. Blocks loops and reconverges after link failure. RSTP is faster.",
-      "MSTP":"Multiple STP instances grouped for scale.",
-      "LACP":"Link aggregation protocol. Bonds links as one port-channel.",
-      "SVI":"Switched Virtual Interface. L3 interface acting as gateway for a VLAN.",
-      "RoaS":"Router-on-a-stick. Subinterfaces per VLAN over a trunk.",
-      "OSPF":"Link-state IGP with areas and quick convergence.",
-      "EIGRP":"Cisco IGP with fast convergence using DUAL.",
-      "BGP":"Policy-based inter-domain routing. Internet, EVPN control plane.",
-      "NAT":"Translate private to public IPs. PAT multiplexes many to one with ports.",
-      "VRF":"Virtual routing table. Multi-tenant separation on one device.",
-      "VXLAN":"L2 over L3 overlay using UDP encapsulation. Needs higher MTU.",
-      "EVPN":"BGP extension that carries MAC/IP reachability for VXLAN.",
-      "PVLAN":"Private VLAN. Isolates hosts at L2 inside one subnet.",
-      "HSRP":"Virtual gateway with active/standby. VRRP is the open variant.",
-      "ECMP":"Equal-cost multi-path. Load shares flows over equal routes.",
-      "ACL":"Permit/deny rules by IP and port at L3/L4.",
-      "NGFW":"Stateful firewall with application awareness.",
-      "IDS":"Intrusion detection. IPS blocks inline.",
-      "802.1X":"Port-based authentication using RADIUS.",
-      "VPN":"Encrypted tunnels for remote or site connectivity.",
-      "MFA":"Second factor for stronger identity.",
-      "SNMP":"Device counters and health.",
-      "NetFlow":"Flow export of conversations and volumes. IPFIX newer format.",
-      "Syslog":"Central device event logging.",
-      "SPAN":"Mirror packets to a capture port. RSPAN extends across switches.",
-      "PCAP":"Packet capture for deep analysis. Use Wireshark.",
-      "DHCP":"Address and option assignment to clients.",
-      "DNS":"Name-to-IP resolution. A for IPv4, AAAA for IPv6.",
-      "NTP":"Clock sync. Critical for logs and TLS.",
-      "AAA":"Central authZ/authN/accounting via RADIUS/TACACS+.",
-      "BACKUP":"Versioned config copies stored off-device.",
-      "TEMPLATE":"Reusable config snippets to avoid drift.",
-      "TEST":"Planned failover or pull tests to prove resilience."
+      "VLAN":"Virtual local area network, separate broadcast domains on one switch (VLAN).",
+      "802.1Q":"VLAN tagging method that inserts a small identifier in the frame (802.1Q).",
+      "TRUNK":"Link that carries multiple VLANs between switches or to routers (TRUNK).",
+      "STP":"Loop prevention that blocks redundant paths and reconverges on failure (STP).",
+      "MSTP":"Spanning tree that groups VLANs into a few instances for scale (MSTP).",
+      "LACP":"Link bundling so multiple cables act as one logical port-channel (LACP).",
+      "SVI":"Layer 3 interface on a switch that serves as the VLAN gateway (SVI).",
+      "RoaS":"Single router interface split into subinterfaces for many VLANs (RoaS).",
+      "OSPF":"Interior routing that builds a map of links and picks shortest paths (OSPF).",
+      "EIGRP":"Cisco interior routing with fast convergence using a loop-free algorithm (EIGRP).",
+      "BGP":"Policy driven routing used between networks and for large fabrics (BGP).",
+      "NAT":"Address translation that maps private addresses to public space (NAT).",
+      "VRF":"Separate routing tables on one device for clean tenant separation (VRF).",
+      "VXLAN":"Encapsulation that carries layer 2 across layer 3 networks (VXLAN).",
+      "EVPN":"Control plane that advertises hosts and networks for VXLAN overlays (EVPN).",
+      "PVLAN":"Layer 2 isolation inside one subnet to stop lateral traffic (PVLAN).",
+      "HSRP":"Virtual gateway with active and standby devices for failover (HSRP).",
+      "VRRP":"Open version of a virtual gateway with active and backup roles (VRRP).",
+      "ECMP":"Routing that splits flows across several equal paths (ECMP).",
+      "ACL":"Traffic filter that permits or denies by address and port (ACL).",
+      "NGFW":"Stateful firewall that can identify applications and users (NGFW).",
+      "IDS":"Inspection that detects attacks, IPS can block them inline (IDS).",
+      "802.1X":"Port authentication that checks identity before giving access (802.1X).",
+      "VPN":"Encrypted tunnel for remote users or sites (VPN).",
+      "MFA":"Extra identity factor beyond password to reduce account takeover (MFA).",
+      "SNMP":"Device counters and health exposed for monitoring (SNMP).",
+      "NetFlow":"Summary of who talks to whom and how much (NetFlow).",
+      "Syslog":"Device event messages collected centrally for audits and incidents (Syslog).",
+      "SPAN":"Copy of packets sent to a port for analysis, RSPAN can extend it (SPAN).",
+      "PCAP":"Packet capture used to inspect real traffic in detail (PCAP).",
+      "DHCP":"Automatic address and option assignment to clients (DHCP).",
+      "DNS":"Name to address lookup for apps and services (DNS).",
+      "NTP":"Clock sync so logs and security checks line up in time (NTP).",
+      "AAA":"Central login, permission, and accounting for admins and users (AAA).",
+      "BACKUP":"Saved copies of configuration used for rollback and audits (BACKUP).",
+      "TEMPLATE":"Reusable configuration blocks that keep devices consistent (TEMPLATE).",
+      "TEST":"Planned failover or link pulls to prove resilience under load (TEST).",
+      "L2":"Layer 2 switching domain with frames and MAC addresses (L2).",
+      "L3":"Layer 3 routing domain with IP and next hops (L3).",
+      "Mgmt":"Out of band or in band management and telemetry plane (Mgmt).",
+      "App":"Application level services that users and systems call (App).",
+      "Infra":"Core time and identity helpers that everything depends on (Infra).",
+      "Ops":"Operational practices such as backups and drills (Ops)."
     };
 
-    // Categories and concrete components
+    // Data: categories and concrete components
     const model = {
       center: {
         name:"Network components and how they connect",
         what:"Tangible pieces you configure in production.",
-        link:"Use this map to plan changes and spot dependencies quickly."
+        link:"Use this map to plan changes and spot dependencies fast.",
+        tags:["L2","L3","Mgmt","Ops"]
       },
       categories: [
-        { id:"L2",   name:"Layer 2 — Switching and loops" },
-        { id:"L3",   name:"Layer 3 — Routing and gateways" },
-        { id:"SEG",  name:"Isolation — Segmentation and overlays" },
-        { id:"HA",   name:"Resilience — High availability" },
-        { id:"SEC",  name:"Security — Controls and boundaries" },
-        { id:"TEL",  name:"Telemetry — Device and traffic visibility" },
-        { id:"SERV", name:"Services — Identity and core services" },
-        { id:"OPS",  name:"Operations — Backups and testing" }
+        { id:"L2",   name:"Layer 2 switching and loops" },
+        { id:"L3",   name:"Layer 3 routing and gateways" },
+        { id:"SEG",  name:"Segmentation and overlays" },
+        { id:"HA",   name:"High availability" },
+        { id:"SEC",  name:"Security controls and boundaries" },
+        { id:"TEL",  name:"Telemetry and visibility" },
+        { id:"SERV", name:"Core services and identity" },
+        { id:"OPS",  name:"Operations and testing" }
       ],
       items: {
         L2: [
-          { tag:"VLAN", name:"VLAN (802.1Q)", layer:"L2",
-            what:"Separate broadcast domains on one switch.",
-            link:"Feeds inter-VLAN routing on L3. Rides on trunks. Governed by STP. Can bond links with LACP.",
-            tags:["VLAN","802.1Q"] },
-          { tag:"TRUNK", name:"Trunks", layer:"L2",
-            what:"Carry multiple VLANs on one uplink.",
-            link:"Connects access to distribution or leaf to spine. Needed for RoaS and SVI reachability.",
-            tags:["TRUNK","802.1Q"] },
-          { tag:"STP", name:"STP / RSTP / MSTP", layer:"L2",
-            what:"Prevents loops and converges after failures.",
-            link:"Protects L2 plane before enabling L3. Works with LACP and trunks.",
-            tags:["STP","MSTP"] },
-          { tag:"LACP", name:"EtherChannel (LACP)", layer:"L2",
-            what:"Bonds links into one logical port-channel.",
-            link:"Underpins resilient trunks and server uplinks. Improves HA at L2.",
-            tags:["LACP"] }
+          node("VLAN","VLAN (802.1Q)",["L2","VLAN","802.1Q"],"Separate broadcast domains on one switch.","Feeds inter-VLAN routing. Uses trunks. Protected by spanning tree."),
+          node("TRUNK","Trunks",["L2","TRUNK","802.1Q"],"Carry multiple VLANs over one link.","Connects switches and router-on-a-stick. Needed so SVIs see traffic."),
+          node("STP","STP RSTP MSTP",["L2","STP","MSTP"],"Prevents loops and converges on failure.","Works under VLANs and trunks. Cooperates with link aggregation."),
+          node("LACP","EtherChannel",["L2","LACP"],"Bonds links into one logical pipe.","Used for resilient trunks and server uplinks.")
         ],
         L3: [
-          { tag:"SVI", name:"SVI gateways", layer:"L3",
-            what:"Default gateway per VLAN on the switch.",
-            link:"Depends on VLAN presence. Uses ACL/QoS. Often with HSRP/VRRP.",
-            tags:["SVI"] },
-          { tag:"RoaS", name:"Router on a stick", layer:"L3",
-            what:"Router subinterfaces per VLAN over one trunk.",
-            link:"Good for labs or small sites. Replace with SVIs for scale.",
-            tags:["RoaS","802.1Q"] },
-          { tag:"OSPF", name:"OSPF", layer:"L3",
-            what:"IGP with fast convergence and areas.",
-            link:"Advertises SVI and transit subnets. Enables ECMP.",
-            tags:["OSPF","ECMP"] },
-          { tag:"EIGRP", name:"EIGRP", layer:"L3",
-            what:"Cisco IGP with quick convergence.",
-            link:"Alternative to OSPF in Cisco-only domains.",
-            tags:["EIGRP"] },
-          { tag:"BGP", name:"BGP", layer:"L3",
-            what:"Policy routing between autonomous systems.",
-            link:"Internet edges, EVPN fabrics, multi-provider WAN. Needs stable underlay.",
-            tags:["BGP","EVPN"] },
-          { tag:"NAT", name:"NAT / PAT", layer:"L3",
-            what:"Translate private to public. PAT multiplexes ports.",
-            link:"Lives at borders with firewalls. Needs correct return routes.",
-            tags:["NAT"] }
+          node("SVI","SVI gateways",["L3","SVI"],"Default gateway per VLAN on the switch.","Depends on VLAN presence. Often paired with a virtual gateway."),
+          node("RoaS","Router on a stick",["L3","RoaS","802.1Q"],"Router subinterfaces per VLAN on one port.","Good in labs and small sites. Replaced by SVIs when scale grows."),
+          node("OSPF","OSPF",["L3","OSPF"],"Interior routing that finds shortest paths.","Advertises VLAN gateways and transit links. Enables equal paths."),
+          node("EIGRP","EIGRP",["L3","EIGRP"],"Cisco interior routing with fast convergence.","Alternative to OSPF in single-vendor networks."),
+          node("BGP","BGP",["L3","BGP","EVPN"],"Policy driven routing between networks.","Used at internet edges and for overlays. Needs a stable underlay."),
+          node("NAT","NAT PAT",["L3","NAT"],"Maps private space to public addresses.","Lives at borders next to the firewall. Needs correct return paths.")
         ],
         SEG: [
-          { tag:"VRF", name:"VRF", layer:"L3",
-            what:"Multiple routing tables on one device.",
-            link:"Pairs with VLAN/ACL. Each VRF runs its own routing.",
-            tags:["VRF"] },
-          { tag:"VXLAN", name:"VXLAN overlays", layer:"L2 over L3",
-            what:"Encapsulate L2 over L3 for mobility and clean boundaries.",
-            link:"Rides underlay IGP. Often uses BGP EVPN. Raise MTU.",
-            tags:["VXLAN","EVPN"] },
-          { tag:"PVLAN", name:"Private VLAN", layer:"L2",
-            what:"Isolate hosts inside one subnet.",
-            link:"Great in DMZ or multi-tenant racks with a promiscuous gateway.",
-            tags:["PVLAN"] }
+          node("VRF","VRF",["L3","VRF"],"Separate routing tables on one device.","Pairs with VLANs and filters. Each VRF runs its own routing."),
+          node("VXLAN","VXLAN overlays",["L2","VXLAN","EVPN"],"Carries layer 2 across layer 3 fabric.","Rides the underlay routing. Requires higher MTU."),
+          node("PVLAN","Private VLAN",["L2","PVLAN"],"Isolates hosts inside a subnet.","Useful in DMZ or multi-tenant racks with a shared gateway.")
         ],
         HA: [
-          { tag:"HSRP", name:"HSRP / VRRP", layer:"L3",
-            what:"Virtual gateway with standby takeover.",
-            link:"Fronts SVIs or routed links. Keep policies consistent on peers.",
-            tags:["HSRP","VRRP"] },
-          { tag:"ECMP", name:"ECMP", layer:"L3",
-            what:"Share flows across equal routes.",
-            link:"Comes from IGP or BGP. Prefer similar links for even hashing.",
-            tags:["ECMP"] },
-          { tag:"DUAL", name:"Dual power and paths", layer:"All",
-            what:"Two PSUs and independent uplinks/providers.",
-            link:"Backs every other control. Combine with LACP and HSRP.",
-            tags:["BACKUP"] }
+          node("HSRP","HSRP VRRP",["L3","HSRP","VRRP"],"Virtual gateway with active and standby.","Fronts SVIs or routed links. Keep peer configs aligned."),
+          node("ECMP","ECMP",["L3","ECMP"],"Splits flows across equal routes.","Comes from the interior routing or policies. Works best on similar links."),
+          node("DUAL","Dual power and paths",["Ops","L2","L3"],"Two power feeds and independent uplinks.","Supports every other control. Combine with aggregation and virtual gateways.")
         ],
         SEC: [
-          { tag:"ACL", name:"ACLs", layer:"L3/L4",
-            what:"Permit or deny by IP and port.",
-            link:"Apply on SVIs, routed links, vty lines. Mirror for IPv6.",
-            tags:["ACL"] },
-          { tag:"NGFW", name:"Next gen firewall", layer:"L3/L7",
-            what:"Stateful filtering with app awareness.",
-            link:"Place at boundaries. Use routes and identities from AAA.",
-            tags:["NGFW"] },
-          { tag:"IDS", name:"IDS / IPS", layer:"L3/L7",
-            what:"Detect or block exploits and anomalies.",
-            link:"Inline or via SPAN. Feed alerts to SIEM.",
-            tags:["IDS","SPAN"] },
-          { tag:"8021X", name:"802.1X and NAC", layer:"L2",
-            what:"Port access by identity using RADIUS.",
-            link:"Assign VLAN or VRF dynamically. Support per-user ACL.",
-            tags:["802.1X","AAA"] },
-          { tag:"VPN", name:"VPN and MFA", layer:"L3/L7",
-            what:"Encrypted tunnels with strong identity.",
-            link:"Integrates with IGP or static routes. Lock down management.",
-            tags:["VPN","MFA"] }
+          node("ACL","ACLs",["L3","ACL"],"Permit or deny by address and port.","Applied on SVIs, routed links, and device lines. Mirror for IPv6."),
+          node("NGFW","Next gen firewall",["L3","NGFW"],"Stateful filtering with app awareness.","Place at boundaries. Uses routes and identity to decide."),
+          node("IDS","IDS IPS",["L3","IDS"],"Detects attacks, can block inline.","Inline or via mirrored traffic. Send findings to security logs."),
+          node("8021X","802.1X and NAC",["L2","802.1X","AAA"],"Port access by identity before network use.","Assigns VLAN or VRF dynamically. Can add per user filters."),
+          node("VPN","VPN and MFA",["L3","VPN","MFA"],"Encrypted access for users or sites.","Integrates with routing. Use strong identity.")
         ],
         TEL: [
-          { tag:"SNMP", name:"SNMP", layer:"Mgmt",
-            what:"Device counters and health.",
-            link:"Feeds NMS dashboards, alerting, capacity plans.",
-            tags:["SNMP"] },
-          { tag:"NetFlow", name:"NetFlow / IPFIX", layer:"Mgmt",
-            what:"Conversations and volumes.",
-            link:"Explains spikes and supports security investigations.",
-            tags:["NetFlow"] },
-          { tag:"Syslog", name:"Syslog", layer:"Mgmt",
-            what:"Device reasons and events.",
-            link:"Central store for audits and incident timelines.",
-            tags:["Syslog"] },
-          { tag:"SPAN", name:"SPAN / RSPAN", layer:"L2",
-            what:"Mirror packets to a capture port.",
-            link:"Use with Wireshark for on-wire truth.",
-            tags:["SPAN","PCAP"] },
-          { tag:"PCAP", name:"Wireshark", layer:"L2-L7",
-            what:"Deep packet analysis.",
-            link:"Confirms what SNMP and flows suggest.",
-            tags:["PCAP"] }
+          node("SNMP","SNMP",["Mgmt","SNMP"],"Device counters and health.","Feeds dashboards and alerts. Useful for capacity plans."),
+          node("NetFlow","NetFlow IPFIX",["Mgmt","NetFlow"],"Who talks to whom and how much.","Explains spikes and helps security checks."),
+          node("Syslog","Syslog",["Mgmt","Syslog"],"Device event messages with reasons.","Central store for audits and incident timelines."),
+          node("SPAN","SPAN RSPAN",["L2","SPAN"],"Copy packets to an analysis port.","Use with packet capture for truth on the wire."),
+          node("PCAP","Wireshark",["Mgmt","PCAP"],"Deep packet inspection of real traffic.","Confirms or disproves what counters suggest.")
         ],
         SERV: [
-          { tag:"DHCP", name:"DHCP", layer:"L3",
-            what:"Addresses and options for clients.",
-            link:"Needs IP helper across VLANs. Scopes per segment.",
-            tags:["DHCP"] },
-          { tag:"DNS", name:"DNS", layer:"App",
-            what:"Name resolution for apps.",
-            link:"A and AAAA records. Slow DNS feels like an outage.",
-            tags:["DNS"] },
-          { tag:"NTP", name:"NTP", layer:"Infra",
-            what:"Time sync for logs and crypto.",
-            link:"Telemetry and TLS rely on correct time.",
-            tags:["NTP"] },
-          { tag:"AAA", name:"RADIUS / TACACS+", layer:"Mgmt",
-            what:"Central auth and command control.",
-            link:"Backs 802.1X and admin sessions on routers and switches.",
-            tags:["AAA","802.1X"] }
+          node("DHCP","DHCP",["L3","DHCP"],"Hands out addresses and options to clients.","Needs helper on VLAN interfaces. Scopes per segment."),
+          node("DNS","DNS",["App","DNS"],"Name to address lookup.","Create records for both address families. Slow name service feels like an outage."),
+          node("NTP","NTP",["Infra","NTP"],"Clock sync for devices and servers.","Logs and security checks rely on correct time."),
+          node("AAA","RADIUS TACACS+",["Mgmt","AAA"],"Central login and permissions for admins and users.","Backs port authentication and device access.")
         ],
         OPS: [
-          { tag:"BACKUP", name:"Config backups", layer:"Ops",
-            what:"Versioned configs stored off-device.",
-            link:"Rollback safety and audit trail.",
-            tags:["BACKUP"] },
-          { tag:"TEMPLATE", name:"Templates and automation", layer:"Ops",
-            what:"Repeatable config for consistency.",
-            link:"Applies standards across VLAN, SVI, routing, ACL.",
-            tags:["TEMPLATE"] },
-          { tag:"TEST", name:"Failover tests", layer:"Ops",
-            what:"Planned pulls and switchover drills.",
-            link:"Proves HSRP, ECMP, and STP under load.",
-            tags:["TEST","HSRP","ECMP","STP"] }
+          node("BACKUP","Config backups",["Ops","BACKUP"],"Versioned configs stored off device.","Used for rollback and audits."),
+          node("TEMPLATE","Templates and automation",["Ops","TEMPLATE"],"Reusable config blocks that cut typos.","Apply standards across VLANs, gateways, routing, and filters."),
+          node("TEST","Failover tests",["Ops","TEST"],"Planned link pulls and switchovers.","Proves virtual gateways, equal paths, and spanning tree under load.")
         ]
       }
     };
 
-    /* ---------------------------
-       LAYOUT (extra large canvas)
-       --------------------------- */
+    // Helpers to create nodes
+    function node(tag,name,tags,what,link){ return { tag,name,tags,what,link }; }
 
-    const svg = document.getElementById('stage');
-    const viewport = document.getElementById('viewport');
-    const gGrid = document.getElementById('grid');
-    const gEdges = document.getElementById('edges');
-    const gNodes = document.getElementById('nodes');
-    const tip = document.getElementById('tip');
-    const zoomVal = document.getElementById('zoomVal');
-
-    // Content coordinate system
-    const center = { x: 0, y: 0 }; // we'll place center at (0,0) for simple math
-    const hubRadius = 2600;        // very large radius so leaves can spread far
-    const hubSize = { w: 480, h: 200 };
-    const leafSize = { w: 480, h: 240 };
-    const hubAngles = [-90,-35,20,80,135,-155,180,0]; // 8 categories
-
-    // Build hub positions
-    const hubs = model.categories.map((c,i)=>{
-      const p = polar(center.x, center.y, hubRadius, hubAngles[i]);
-      return { ...c, x: p.x - hubSize.w/2, y: p.y - hubSize.h/2 };
-    });
-
-    // Build leaves with very strong spread to avoid overlap
+    /* -----------------------------
+       Build layout coordinates
+       ----------------------------- */
+    const hubs = [];
     const leaves = [];
-    hubs.forEach(h=>{
-      const group = model.items[h.id] || [];
-      const dir = vecNorm({ x:(h.x+hubSize.w/2)-center.x, y:(h.y+hubSize.h/2)-center.y });
-      const perp = { x:-dir.y, y:dir.x };
-      group.forEach((leaf,i)=>{
-        const base = 900 + i*640;                       // distance from hub
-        const spread = (i - (group.length-1)/2) * 420;  // lateral separation
-        const cx = (h.x+hubSize.w/2) + dir.x*base + perp.x*spread;
-        const cy = (h.y+hubSize.h/2) + dir.y*base + perp.y*spread;
-        leaves.push({ parent:h.id, x: cx - leafSize.w/2, y: cy - leafSize.h/2, ...leaf });
-      });
-    });
+    const hubRadius = 3200;                 // very big spacing from center
+    const hubAngles = [-90,-35,20,80,135,-155,180,0];
 
-    // Center card
-    const centerCard = {
-      x: center.x - 260, y: center.y - 120,
-      name: model.center.name, layer:"All",
-      what: model.center.what, link: model.center.link, tags:[]
+    // Center at (0,0)
+    const centerNode = {
+      x:-230, y:-120, w:460, h:240,
+      name:model.center.name, tags:model.center.tags,
+      what:model.center.what, link:model.center.link, cls:"center"
     };
 
-    // Draw grid lines covering huge area
-    drawGrid(-8000, -6000, 16000, 12000, 400);
-
-    // Draw edges: center->hubs, hubs->leaves
-    hubs.forEach(h=>{
-      pathEdge(center.x+240, center.y+100, h.x, h.y+hubSize.h/2, true);
-    });
-    leaves.forEach(l=>{
-      const hub = hubs.find(x=>x.id===l.parent);
-      pathEdge(hub.x+hubSize.w, hub.y+hubSize.h/2, l.x, l.y+leafSize.h/2, false);
-    });
-
-    // Draw nodes
-    addCard(centerCard, "center");
-    hubs.forEach(h=>{
-      addCard({
-        x:h.x, y:h.y, name:h.name, layer:"Category",
+    // Hub positions around a circle
+    model.categories.forEach((c,i)=>{
+      const p = polar(0,0,hubRadius,hubAngles[i]);
+      const hub = {
+        id:c.id, name:c.name, tags:["Mgmt","Ops","L2","L3"], // generic tags
         what:"Family of components you use in production.",
-        link:"Connects to the core map and the concrete parts below.",
-        tags:[]
-      }, "hub");
-    });
-    leaves.forEach(l=>{
-      addCard({
-        x:l.x, y:l.y, name:l.name, layer:l.layer,
-        what:l.what, link:l.link, tags:l.tags
+        link:"Connects to the core map and the parts below.",
+        x: p.x - 230, y: p.y - 100, w:460, h:200, cls:"hub"
+      };
+      hubs.push(hub);
+
+      // Leaves spread away from hub with strong lateral offset
+      const group = model.items[c.id] || [];
+      const dir = norm({x:p.x, y:p.y});
+      const perp = {x:-dir.y, y:dir.x};
+      group.forEach((leaf,i2)=>{
+        const base = 1100 + i2*760;                   // distance out from hub
+        const spread = (i2 - (group.length-1)/2) * 520;
+        const cx = p.x + dir.x*base + perp.x*spread;
+        const cy = p.y + dir.y*base + perp.y*spread;
+        leaves.push({
+          parent:c.id,
+          name:leaf.name, tags:[...leaf.tags], what:leaf.what, link:leaf.link,
+          x: cx - 230, y: cy - 120, w:460, h:240, cls:""
+        });
       });
     });
 
-    // Fit view initially
-    fitToContent();
+    /* -----------------------------
+       Render grid, edges, nodes
+       ----------------------------- */
+    const stage = document.getElementById('stage');
+    const viewport = document.getElementById('viewport');
+    const grid = document.getElementById('grid');
+    const edges = document.getElementById('edges');
+    const nodes = document.getElementById('nodes');
+    const zoomVal = document.getElementById('zoomVal');
+    const tip = document.getElementById('tip');
 
-    /* ---------------------------
-       PAN + ZOOM (true canvas zoom)
-       --------------------------- */
+    // Huge grid
+    drawGrid(-14000, -10000, 28000, 20000, 400);
 
-    let scale = 1, minScale = 0.25, maxScale = 3.5;
-    let tx = svg.clientWidth/2, ty = svg.clientHeight/2; // translate to center
+    // Edges: center to hubs
+    hubs.forEach(h=>{
+      drawEdge(240,100, h.x, h.y+100, true); // from center card corner
+    });
+    // Edges: hubs to leaves
+    leaves.forEach(l=>{
+      const hub = hubs.find(x=>x.id===l.parent);
+      drawEdge(hub.x+hub.w, hub.y+hub.h/2, l.x, l.y+l.h/2, false);
+    });
+
+    // Nodes
+    addCard(centerNode);
+    hubs.forEach(addCard);
+    leaves.forEach(addCard);
+
+    /* -----------------------------
+       Pan and zoom controls
+       ----------------------------- */
+    let scale = 1, minScale = 0.25, maxScale = 4;
+    let tx = stage.clientWidth/2, ty = stage.clientHeight/2;
     applyTransform();
 
-    // Mouse wheel zoom at cursor
-    svg.addEventListener('wheel', (e)=>{
+    // Wheel zoom at cursor
+    stage.addEventListener('wheel', e=>{
       e.preventDefault();
-      const { left, top } = svg.getBoundingClientRect();
-      const sx = e.clientX - left;
-      const sy = e.clientY - top;
-
+      const rect = stage.getBoundingClientRect();
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
       const prev = scale;
-      const factor = Math.exp((-e.deltaY) * 0.0015); // smooth
-      scale = clamp(prev * factor, minScale, maxScale);
+      const factor = Math.exp((-e.deltaY) * 0.0016);
+      scale = clamp(prev*factor, minScale, maxScale);
 
-      // Keep cursor point stable: content point stays under mouse
       const cx = (sx - tx) / prev;
       const cy = (sy - ty) / prev;
       tx = sx - cx * scale;
       ty = sy - cy * scale;
 
       applyTransform();
-    }, { passive:false });
+    }, {passive:false});
 
     // Drag to pan
-    let dragging = false, lastX=0, lastY=0;
-    svg.addEventListener('mousedown', (e)=>{
-      if(e.button !== 0) return;
-      dragging = true; lastX = e.clientX; lastY = e.clientY;
+    let dragging=false, px=0, py=0;
+    stage.addEventListener('pointerdown', e=>{
+      if(e.button!==0) return;
+      dragging=true; px=e.clientX; py=e.clientY;
+      stage.setPointerCapture(e.pointerId);
+      stage.classList.add('dragging');
     });
-    window.addEventListener('mousemove', (e)=>{
+    stage.addEventListener('pointermove', e=>{
       if(!dragging) return;
-      const dx = e.clientX - lastX;
-      const dy = e.clientY - lastY;
-      lastX = e.clientX; lastY = e.clientY;
+      const dx = e.clientX - px;
+      const dy = e.clientY - py;
+      px = e.clientX; py = e.clientY;
       tx += dx; ty += dy;
       applyTransform();
     });
-    window.addEventListener('mouseup', ()=> dragging=false);
+    stage.addEventListener('pointerup', e=>{
+      dragging=false;
+      stage.releasePointerCapture(e.pointerId);
+      stage.classList.remove('dragging');
+    });
 
     // Buttons
-    document.getElementById('btnZoomIn').onclick = ()=> adjustZoom(1.15);
-    document.getElementById('btnZoomOut').onclick = ()=> adjustZoom(1/1.15);
+    document.getElementById('btnZoomIn').onclick = ()=> zoomAtCenter(1.15);
+    document.getElementById('btnZoomOut').onclick = ()=> zoomAtCenter(1/1.15);
     document.getElementById('btnReset').onclick = ()=> { scale=1; centerOn(0,0); applyTransform(); };
     document.getElementById('btnFit').onclick = ()=> fitToContent();
-
     window.addEventListener('resize', ()=> fitToContent());
 
-    function adjustZoom(mult){
-      const cx = svg.clientWidth/2, cy = svg.clientHeight/2;
-      const prev = scale;
-      scale = clamp(prev*mult, minScale, maxScale);
-      const px = (cx - tx)/prev, py = (cy - ty)/prev;
-      tx = cx - px*scale; ty = cy - py*scale;
-      applyTransform();
+    // Fit view initially
+    fitToContent();
+
+    /* -----------------------------
+       Tooltip population
+       ----------------------------- */
+    function showTip(title, tags){
+      const defs = (tags||[])
+        .map(t => GLOSSARY[t])
+        .filter(Boolean)
+        .map(text => `<div class="def"><code>${escapeHTML(getAcr(text))}</code> ${escapeHTML(text)}</div>`)
+        .join("");
+      tip.innerHTML = `<h3>${escapeHTML(title)}</h3>` +
+                      (defs || `<p class="mini">Hover other cards to see plain definitions.</p>`);
     }
-    function centerOn(x,y){
-      tx = svg.clientWidth/2 - x*scale;
-      ty = svg.clientHeight/2 - y*scale;
+    function getAcr(text){
+      // Pull acronym inside parentheses at the end
+      const m = text.match(/\(([^)]+)\)\.?$/);
+      return m ? m[1] : "INFO";
     }
+
+    /* -----------------------------
+       Render helpers
+       ----------------------------- */
+    function addCard(n){
+      const el = document.createElement('div');
+      el.className = `card ${n.cls||""}`;
+      el.style.left = n.x + "px";
+      el.style.top  = n.y + "px";
+      el.style.width = n.w + "px";
+      el.style.height = n.h + "px";
+
+      const chips = (n.tags||[]).map(t=>`<span class="tag">${escapeHTML(t)}</span>`).join("");
+      el.innerHTML = `
+        <div class="chips">${chips}</div>
+        <div class="name">${escapeHTML(n.name)}</div>
+        <div class="what"><b>What it does</b>: ${escapeHTML(n.what)}</div>
+        <div class="link"><b>How it links</b>: ${escapeHTML(n.link)}</div>
+      `;
+      el.addEventListener('mouseenter', ()=> showTip(n.name, n.tags));
+      el.addEventListener('focus', ()=> showTip(n.name, n.tags));
+      nodes.appendChild(el);
+    }
+
+    function drawGrid(x,y,w,h,step){
+      grid.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
+      for(let gx=x; gx<=x+w; gx+=step){
+        const ln = document.createElementNS("http://www.w3.org/2000/svg","line");
+        ln.setAttribute("x1", gx); ln.setAttribute("y1", y);
+        ln.setAttribute("x2", gx); ln.setAttribute("y2", y+h);
+        grid.appendChild(ln);
+      }
+      for(let gy=y; gy<=y+h; gy+=step){
+        const ln = document.createElementNS("http://www.w3.org/2000/svg","line");
+        ln.setAttribute("x1", x); ln.setAttribute("y1", gy);
+        ln.setAttribute("x2", x+w); ln.setAttribute("y2", gy);
+        grid.appendChild(ln);
+      }
+    }
+
+    function drawEdge(ax,ay,bx,by,isCenter){
+      const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+      // Smooth cubic curve midpoint
+      const mx = (ax+bx)/2;
+      const d = `M ${ax} ${ay} C ${mx} ${ay}, ${mx} ${by}, ${bx} ${by}`;
+      path.setAttribute("d", d);
+      path.setAttribute("class", isCenter ? "edge center" : "edge");
+      edges.appendChild(path);
+    }
+
     function applyTransform(){
-      viewport.setAttribute('transform', `translate(${tx},${ty}) scale(${scale})`);
+      viewport.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
       zoomVal.textContent = Math.round(scale*100) + "%";
     }
 
-    /* ---------------------------
-       FIT TO CONTENT
-       --------------------------- */
     function fitToContent(){
-      // Build content bounds from all cards
       const boxes = [];
-      boxes.push({x:centerCard.x, y:centerCard.y, w:440, h:240});
-      hubs.forEach(h=> boxes.push({x:h.x, y:h.y, w:hubSize.w, h:hubSize.h}));
-      leaves.forEach(l=> boxes.push({x:l.x, y:l.y, w:leafSize.w, h:leafSize.h}));
+      boxes.push(centerNode);
+      hubs.forEach(h=> boxes.push(h));
+      leaves.forEach(l=> boxes.push(l));
 
-      const bounds = boxes.reduce((b, r)=>({
-        minX: Math.min(b.minX, r.x), minY: Math.min(b.minY, r.y),
-        maxX: Math.max(b.maxX, r.x + r.w), maxY: Math.max(b.maxY, r.y + r.h)
+      const b = boxes.reduce((o,r)=>({
+        minX: Math.min(o.minX, r.x), minY: Math.min(o.minY, r.y),
+        maxX: Math.max(o.maxX, r.x + r.w), maxY: Math.max(o.maxY, r.y + r.h)
       }), {minX:Infinity, minY:Infinity, maxX:-Infinity, maxY:-Infinity});
 
-      // Margin so tooltip and edges have space
-      const margin = 600;
-      const w = bounds.maxX - bounds.minX + margin*2;
-      const h = bounds.maxY - bounds.minY + margin*2;
+      const margin = 800;
+      const w = (b.maxX - b.minX) + margin*2;
+      const h = (b.maxY - b.minY) + margin*2;
 
-      const vw = svg.clientWidth, vh = svg.clientHeight;
-      const s = clamp(Math.min(vw / w, vh / h), minScale, maxScale);
+      const vw = stage.clientWidth;
+      const vh = stage.clientHeight;
 
-      scale = s;
-      const cx = (bounds.minX + bounds.maxX) / 2;
-      const cy = (bounds.minY + bounds.maxY) / 2;
-      centerOn(cx, cy);
+      scale = clamp(Math.min(vw / w, vh / h), 0.2, maxScale);
+      const cx = (b.minX + b.maxX)/2;
+      const cy = (b.minY + b.maxY)/2;
+
+      // place content center at stage center
+      tx = vw/2 - cx*scale;
+      ty = vh/2 - cy*scale;
+
       applyTransform();
     }
 
-    /* ---------------------------
-       RENDER HELPERS
-       --------------------------- */
-
-    function drawGrid(x,y,w,h,step){
-      for(let gx = x; gx <= x+w; gx += step){
-        const line = document.createElementNS("http://www.w3.org/2000/svg","line");
-        line.setAttribute("x1", gx); line.setAttribute("y1", y);
-        line.setAttribute("x2", gx); line.setAttribute("y2", y+h);
-        gGrid.appendChild(line);
-      }
-      for(let gy = y; gy <= y+h; gy += step){
-        const line = document.createElementNS("http://www.w3.org/2000/svg","line");
-        line.setAttribute("x1", x); line.setAttribute("y1", gy);
-        line.setAttribute("x2", x+w); line.setAttribute("y2", gy);
-        gGrid.appendChild(line);
-      }
-    }
-    function pathEdge(ax,ay,bx,by,isCenter){
-      const p = document.createElementNS("http://www.w3.org/2000/svg","path");
-      p.setAttribute("d", curve(ax,ay,bx,by));
-      p.setAttribute("class", isCenter ? "edge center" : "edge");
-      gEdges.appendChild(p);
-    }
-    function addCard(node, cls=""){
-      const fo = document.createElementNS("http://www.w3.org/2000/svg","foreignObject");
-      fo.setAttribute("x", node.x);
-      fo.setAttribute("y", node.y);
-      fo.setAttribute("width", 480);
-      fo.setAttribute("height", 300);
-
-      const div = document.createElement("div");
-      div.setAttribute("class", `card ${cls}`);
-      const chips = [
-        node.layer ? `<span class="tag layer">Layer: ${esc(node.layer)}</span>` : ""
-      ].concat((node.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`)).join("");
-
-      div.innerHTML = `
-        <div class="chips">${chips}</div>
-        <div class="name">${esc(node.name)}</div>
-        <div class="what"><b>What it does</b>: ${esc(node.what)}</div>
-        <div class="link"><b>How it links</b>: ${esc(node.link)}</div>
-      `;
-
-      // Tooltip: show definitions for the tags on hover
-      const keyList = (node.tags||[]).filter(k=>GLOSSARY[k]);
-      div.addEventListener('mouseenter', ()=> renderTip(node.name, node.layer, keyList));
-      div.addEventListener('focus', ()=> renderTip(node.name, node.layer, keyList));
-
-      fo.appendChild(div);
-      gNodes.appendChild(fo);
+    function zoomAtCenter(mult){
+      const vw = stage.clientWidth, vh = stage.clientHeight;
+      const prev = scale;
+      scale = clamp(prev*mult, minScale, maxScale);
+      const px = (vw/2 - tx)/prev, py = (vh/2 - ty)/prev;
+      tx = vw/2 - px*scale; ty = vh/2 - py*scale;
+      applyTransform();
     }
 
-    function renderTip(title, layer, keys){
-      let html = `<h3>${esc(title)}</h3>`;
-      if(layer) html += `<div class="mini">Layer: ${esc(layer)}</div>`;
-      if(keys && keys.length){
-        html += keys.map(k=>`<div class="def"><code>${esc(k)}</code> ${esc(GLOSSARY[k]||"")}</div>`).join("");
-      }else{
-        html += `<p class="mini">Hover other cards to see concise definitions of their tags.</p>`;
-      }
-      tip.innerHTML = html;
-    }
-
-    /* ---------------------------
-       MATH / UTILS
-       --------------------------- */
-    function polar(cx,cy,r,deg){ const t = deg*Math.PI/180; return {x:cx + r*Math.cos(t), y:cy + r*Math.sin(t)}; }
-    function vecNorm(v){ const n = Math.hypot(v.x,v.y) || 1; return {x:v.x/n, y:v.y/n}; }
-    function curve(ax,ay,bx,by){ const mx=(ax+bx)/2; return `M ${ax} ${ay} C ${mx} ${ay}, ${mx} ${by}, ${bx} ${by}`; }
+    /* Math helpers */
+    function polar(cx,cy,r,deg){ const t=deg*Math.PI/180; return {x:cx+r*Math.cos(t), y:cy+r*Math.sin(t)}; }
+    function norm(v){ const n=Math.hypot(v.x,v.y)||1; return {x:v.x/n, y:v.y/n}; }
     function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
-    function esc(s){ return (s||"").replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    function escapeHTML(s){ return (s||"").replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
   </script>
 </body>
 </html>
