@@ -2,69 +2,65 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Practical Network Mindmap — Components and Links</title>
+  <title>Practical Network Mindmap — Touch Friendly</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    /* Layout and theme */
     :root{
       --bg:#0f1221;
       --panel:#0c1230;
       --card:#151c45;
       --ink:#eef1ff;
       --muted:#b8c0e6;
-      --edge:#89bdff;
-      --edge-soft:#405089;
-      --center:#ffc86e;
-      --hub:#20e6b2;
+      --edge:#a8ceff;
+      --edge-soft:#5163a8;
       --radius:18px;
+      --accent:#4e63d9;
+      --accent2:#1fe1ae;
+      --accent3:#f3a84a;
     }
     html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;overflow:hidden}
     .bar{
       position:fixed; inset:0 0 auto 0; z-index:5;
-      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-      padding:10px 14px; background:var(--panel); border-bottom:1px solid #223063;
+      display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+      padding:12px 16px; background:var(--panel); border-bottom:1px solid #223063;
     }
     .title{font-weight:800}
     .hint{color:var(--muted);font-size:12px}
     .btn{
-      appearance:none; border:2px solid #4e63d9; background:#12173a; color:#dfe6ff;
-      padding:6px 10px; border-radius:10px; cursor:pointer; font-weight:600
+      appearance:none; border:2px solid var(--accent); background:#12173a; color:#dfe6ff;
+      padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:700; font-size:14px; touch-action:manipulation
     }
     .btn:active{transform:translateY(1px)}
-    .zoomval{color:#cfe2ff;font-weight:700;margin-left:6px}
+    .zoomval{color:#cfe2ff;font-weight:800;margin-left:6px;min-width:56px;display:inline-block}
 
     /* Stage with true pan and zoom */
-    #stage{position:fixed; inset:48px 0 0 0; background:#0f1221; cursor:grab; user-select:none}
+    #stage{position:fixed; inset:56px 0 0 0; background:#0f1221; touch-action:none; cursor:grab; user-select:none}
     #stage.dragging{cursor:grabbing}
-    #viewport{
-      position:absolute; left:0; top:0; transform-origin:0 0;
-      /* Big content area so everything fits without browser zoom */
-      width:1px; height:1px; /* size is irrelevant, transform moves content */
-    }
+    #viewport{position:absolute; left:0; top:0; transform-origin:0 0; width:1px; height:1px}
 
-    /* Background grid in content space */
+    /* Grid */
     #grid{position:absolute; left:0; top:0; width:1px; height:1px; overflow:visible; pointer-events:none}
     #grid line{stroke:#16204e;stroke-width:1}
 
-    /* Edges as SVG, overflow visible so paths can extend anywhere */
+    /* Edges */
     #edges{position:absolute; left:0; top:0; width:1px; height:1px; overflow:visible; pointer-events:none}
-    .edge{fill:none;stroke:var(--edge-soft);stroke-width:3;stroke-linecap:round;opacity:.95}
-    .edge.center{stroke:var(--edge);stroke-width:4;opacity:1}
+    .edge{fill:none;stroke:var(--edge-soft);stroke-width:3.5;stroke-linecap:round;opacity:.95}
+    .edge.center{stroke:var(--edge);stroke-width:4.5;opacity:1}
 
-    /* Cards as simple HTML for reliable events and performance */
+    /* Cards */
     .card{
       position:absolute;
-      width:460px;
+      width:440px;
       background:linear-gradient(180deg,#1b2354 0%, var(--card) 100%);
-      border:3px solid #3b58d1;
+      border:4px solid #6ea3ff;
       border-radius:var(--radius);
       color:var(--ink);
       box-shadow:0 18px 36px rgba(0,0,0,.42);
       padding:12px 14px;
-      outline:2px solid rgba(255,255,255,.10);
+      outline:2px solid rgba(255,255,255,.12);
     }
-    .card.center{ border-color:#f3a84a }
-    .card.hub{ border-color:#20e6b2 }
+    .card.center{ border-color:var(--accent3) }
+    .card.hub{ border-color:var(--accent2) }
     .card:hover{ outline-color:rgba(255,255,255,.28) }
 
     .chips{display:flex;flex-wrap:wrap;margin:6px 0}
@@ -76,12 +72,12 @@
     .name{font-weight:800;margin:2px 0 6px;letter-spacing:.2px}
     .what,.link{font-size:12.5px;color:var(--muted);margin:6px 0}
 
-    /* Fixed tooltip bottom-right, never moves with zoom */
+    /* Sticky tooltip */
     .tip{
       position:fixed; right:18px; bottom:18px; z-index:6;
       width:520px; max-height:50vh; overflow:auto;
       background:rgba(13,18,48,.95);
-      border:2px solid #4e63d9; border-radius:14px;
+      border:2px solid var(--accent); border-radius:14px;
       box-shadow:0 14px 28px rgba(0,0,0,.45);
       padding:12px 14px; backdrop-filter: blur(6px)
     }
@@ -94,12 +90,12 @@
 <body>
   <div class="bar">
     <div class="title">Practical Network Mindmap</div>
-    <button class="btn" id="btnZoomOut">Zoom −</button>
-    <button class="btn" id="btnZoomIn">Zoom +</button>
+    <button class="btn" id="btnZoomOut">Zoom Out</button>
+    <button class="btn" id="btnZoomIn">Zoom In</button>
     <button class="btn" id="btnFit">Fit</button>
     <button class="btn" id="btnReset">Reset</button>
     <span class="zoomval" id="zoomVal">100%</span>
-    <span class="hint">Drag to pan. Wheel to zoom at cursor. Header and tooltip do not move.</span>
+    <span class="hint">Drag or one finger to pan. Pinch to zoom. Double tap to zoom in.</span>
   </div>
 
   <div id="stage" aria-label="Mindmap canvas">
@@ -111,32 +107,28 @@
   </div>
 
   <div id="tip" class="tip" aria-live="polite">
-    <h3>Hover a component</h3>
-    <p class="mini">You will see short, plain definitions here. Always meaning first, acronym in parentheses.</p>
+    <h3>Hover or tap a component</h3>
+    <p class="mini">Plain definitions here. Meaning first, acronym in parentheses.</p>
     <div class="def"><code>VLAN</code> Virtual local area network, separate broadcast domains on one switch (VLAN).</div>
     <div class="def"><code>SVI</code> Layer 3 interface on a switch that acts as the default gateway for a VLAN (SVI).</div>
   </div>
 
   <script>
     /* ---------------------------------------------------------
-       Lightweight pan and zoom
-       - HTML cards positioned absolutely in a virtual space
-       - One SVG for edges and one SVG for the grid
-       - A single CSS transform on #viewport does the zoom
-       --------------------------------------------------------- */
-
-    // Simple glossary with meaning first, acronym in parentheses
+       Data model with practical components
+       Keep tags small and clear. Tooltip shows meaning (sigla).
+    --------------------------------------------------------- */
     const GLOSSARY = {
       "VLAN":"Virtual local area network, separate broadcast domains on one switch (VLAN).",
       "802.1Q":"VLAN tagging method that inserts a small identifier in the frame (802.1Q).",
       "TRUNK":"Link that carries multiple VLANs between switches or to routers (TRUNK).",
       "STP":"Loop prevention that blocks redundant paths and reconverges on failure (STP).",
       "MSTP":"Spanning tree that groups VLANs into a few instances for scale (MSTP).",
-      "LACP":"Link bundling so multiple cables act as one logical port-channel (LACP).",
+      "LACP":"Link bundling so multiple cables act as one logical port channel (LACP).",
       "SVI":"Layer 3 interface on a switch that serves as the VLAN gateway (SVI).",
       "RoaS":"Single router interface split into subinterfaces for many VLANs (RoaS).",
       "OSPF":"Interior routing that builds a map of links and picks shortest paths (OSPF).",
-      "EIGRP":"Cisco interior routing with fast convergence using a loop-free algorithm (EIGRP).",
+      "EIGRP":"Cisco interior routing with fast convergence using a loop free algorithm (EIGRP).",
       "BGP":"Policy driven routing used between networks and for large fabrics (BGP).",
       "NAT":"Address translation that maps private addresses to public space (NAT).",
       "VRF":"Separate routing tables on one device for clean tenant separation (VRF).",
@@ -148,14 +140,14 @@
       "ECMP":"Routing that splits flows across several equal paths (ECMP).",
       "ACL":"Traffic filter that permits or denies by address and port (ACL).",
       "NGFW":"Stateful firewall that can identify applications and users (NGFW).",
-      "IDS":"Inspection that detects attacks, IPS can block them inline (IDS).",
+      "IDS":"Inspection that detects attacks, inline version can block them (IDS).",
       "802.1X":"Port authentication that checks identity before giving access (802.1X).",
       "VPN":"Encrypted tunnel for remote users or sites (VPN).",
       "MFA":"Extra identity factor beyond password to reduce account takeover (MFA).",
       "SNMP":"Device counters and health exposed for monitoring (SNMP).",
       "NetFlow":"Summary of who talks to whom and how much (NetFlow).",
       "Syslog":"Device event messages collected centrally for audits and incidents (Syslog).",
-      "SPAN":"Copy of packets sent to a port for analysis, RSPAN can extend it (SPAN).",
+      "SPAN":"Copy of packets sent to a port for analysis, extended version can cross switches (SPAN).",
       "PCAP":"Packet capture used to inspect real traffic in detail (PCAP).",
       "DHCP":"Automatic address and option assignment to clients (DHCP).",
       "DNS":"Name to address lookup for apps and services (DNS).",
@@ -164,20 +156,19 @@
       "BACKUP":"Saved copies of configuration used for rollback and audits (BACKUP).",
       "TEMPLATE":"Reusable configuration blocks that keep devices consistent (TEMPLATE).",
       "TEST":"Planned failover or link pulls to prove resilience under load (TEST).",
-      "L2":"Layer 2 switching domain with frames and MAC addresses (L2).",
-      "L3":"Layer 3 routing domain with IP and next hops (L3).",
-      "Mgmt":"Out of band or in band management and telemetry plane (Mgmt).",
-      "App":"Application level services that users and systems call (App).",
-      "Infra":"Core time and identity helpers that everything depends on (Infra).",
+      "L2":"Layer 2 switching with frames and MAC addresses (L2).",
+      "L3":"Layer 3 routing with IP and next hops (L3).",
+      "Mgmt":"Management and telemetry plane (Mgmt).",
+      "App":"Application services that users and systems call (App).",
+      "Infra":"Time and identity helpers that everything depends on (Infra).",
       "Ops":"Operational practices such as backups and drills (Ops)."
     };
 
-    // Data: categories and concrete components
     const model = {
       center: {
         name:"Network components and how they connect",
         what:"Tangible pieces you configure in production.",
-        link:"Use this map to plan changes and spot dependencies fast.",
+        link:"Plan changes and spot dependencies fast.",
         tags:["L2","L3","Mgmt","Ops"]
       },
       categories: [
@@ -192,106 +183,103 @@
       ],
       items: {
         L2: [
-          node("VLAN","VLAN (802.1Q)",["L2","VLAN","802.1Q"],"Separate broadcast domains on one switch.","Feeds inter-VLAN routing. Uses trunks. Protected by spanning tree."),
-          node("TRUNK","Trunks",["L2","TRUNK","802.1Q"],"Carry multiple VLANs over one link.","Connects switches and router-on-a-stick. Needed so SVIs see traffic."),
-          node("STP","STP RSTP MSTP",["L2","STP","MSTP"],"Prevents loops and converges on failure.","Works under VLANs and trunks. Cooperates with link aggregation."),
-          node("LACP","EtherChannel",["L2","LACP"],"Bonds links into one logical pipe.","Used for resilient trunks and server uplinks.")
+          N("VLAN","VLAN (802.1Q)",["L2","VLAN","802.1Q"],"Separate broadcast domains on one switch.","Feeds inter VLAN routing. Uses trunks. Protected by spanning tree."),
+          N("TRUNK","Trunks",["L2","TRUNK","802.1Q"],"Carry multiple VLANs over one link.","Connects switches and router on a stick. Needed so SVIs see traffic."),
+          N("STP","STP RSTP MSTP",["L2","STP","MSTP"],"Prevents loops and converges on failure.","Works under VLANs and trunks. Cooperates with link aggregation."),
+          N("LACP","EtherChannel",["L2","LACP"],"Bonds links into one logical pipe.","Used for resilient trunks and server uplinks.")
         ],
         L3: [
-          node("SVI","SVI gateways",["L3","SVI"],"Default gateway per VLAN on the switch.","Depends on VLAN presence. Often paired with a virtual gateway."),
-          node("RoaS","Router on a stick",["L3","RoaS","802.1Q"],"Router subinterfaces per VLAN on one port.","Good in labs and small sites. Replaced by SVIs when scale grows."),
-          node("OSPF","OSPF",["L3","OSPF"],"Interior routing that finds shortest paths.","Advertises VLAN gateways and transit links. Enables equal paths."),
-          node("EIGRP","EIGRP",["L3","EIGRP"],"Cisco interior routing with fast convergence.","Alternative to OSPF in single-vendor networks."),
-          node("BGP","BGP",["L3","BGP","EVPN"],"Policy driven routing between networks.","Used at internet edges and for overlays. Needs a stable underlay."),
-          node("NAT","NAT PAT",["L3","NAT"],"Maps private space to public addresses.","Lives at borders next to the firewall. Needs correct return paths.")
+          N("SVI","SVI gateways",["L3","SVI"],"Default gateway per VLAN on the switch.","Depends on VLAN presence. Often paired with a virtual gateway."),
+          N("RoaS","Router on a stick",["L3","RoaS","802.1Q"],"Router subinterfaces per VLAN on one port.","Good in labs and small sites. Replaced by SVIs when scale grows."),
+          N("OSPF","OSPF",["L3","OSPF"],"Interior routing that finds shortest paths.","Advertises VLAN gateways and transit links. Enables equal paths."),
+          N("EIGRP","EIGRP",["L3","EIGRP"],"Cisco interior routing with fast convergence.","Alternative to OSPF in single vendor networks."),
+          N("BGP","BGP",["L3","BGP","EVPN"],"Policy routing between networks.","Used at internet edges and for overlays. Needs a stable underlay."),
+          N("NAT","NAT PAT",["L3","NAT"],"Maps private space to public addresses.","Lives at borders next to the firewall. Needs correct return paths.")
         ],
         SEG: [
-          node("VRF","VRF",["L3","VRF"],"Separate routing tables on one device.","Pairs with VLANs and filters. Each VRF runs its own routing."),
-          node("VXLAN","VXLAN overlays",["L2","VXLAN","EVPN"],"Carries layer 2 across layer 3 fabric.","Rides the underlay routing. Requires higher MTU."),
-          node("PVLAN","Private VLAN",["L2","PVLAN"],"Isolates hosts inside a subnet.","Useful in DMZ or multi-tenant racks with a shared gateway.")
+          N("VRF","VRF",["L3","VRF"],"Separate routing tables on one device.","Pairs with VLANs and filters. Each VRF runs its own routing."),
+          N("VXLAN","VXLAN overlays",["L2","VXLAN","EVPN"],"Carries layer 2 across layer 3 fabric.","Rides the underlay routing. Requires higher MTU."),
+          N("PVLAN","Private VLAN",["L2","PVLAN"],"Isolates hosts inside a subnet.","Useful in DMZ or multi tenant racks with a shared gateway.")
         ],
         HA: [
-          node("HSRP","HSRP VRRP",["L3","HSRP","VRRP"],"Virtual gateway with active and standby.","Fronts SVIs or routed links. Keep peer configs aligned."),
-          node("ECMP","ECMP",["L3","ECMP"],"Splits flows across equal routes.","Comes from the interior routing or policies. Works best on similar links."),
-          node("DUAL","Dual power and paths",["Ops","L2","L3"],"Two power feeds and independent uplinks.","Supports every other control. Combine with aggregation and virtual gateways.")
+          N("HSRP","HSRP VRRP",["L3","HSRP","VRRP"],"Virtual gateway with active and standby.","Fronts SVIs or routed links. Keep peer configs aligned."),
+          N("ECMP","ECMP",["L3","ECMP"],"Splits flows across equal routes.","Comes from the interior routing or policies. Works best on similar links."),
+          N("DUAL","Dual power and paths",["Ops","L2","L3"],"Two power feeds and independent uplinks.","Supports every other control. Combine with aggregation and virtual gateways.")
         ],
         SEC: [
-          node("ACL","ACLs",["L3","ACL"],"Permit or deny by address and port.","Applied on SVIs, routed links, and device lines. Mirror for IPv6."),
-          node("NGFW","Next gen firewall",["L3","NGFW"],"Stateful filtering with app awareness.","Place at boundaries. Uses routes and identity to decide."),
-          node("IDS","IDS IPS",["L3","IDS"],"Detects attacks, can block inline.","Inline or via mirrored traffic. Send findings to security logs."),
-          node("8021X","802.1X and NAC",["L2","802.1X","AAA"],"Port access by identity before network use.","Assigns VLAN or VRF dynamically. Can add per user filters."),
-          node("VPN","VPN and MFA",["L3","VPN","MFA"],"Encrypted access for users or sites.","Integrates with routing. Use strong identity.")
+          N("ACL","ACLs",["L3","ACL"],"Permit or deny by address and port.","Applied on SVIs, routed links, and device lines. Mirror for IPv6."),
+          N("NGFW","Next gen firewall",["L3","NGFW"],"Stateful filtering with app awareness.","Place at boundaries. Uses routes and identity to decide."),
+          N("IDS","IDS IPS",["L3","IDS"],"Detects attacks, inline version can block.","Inline or via mirrored traffic. Send findings to security logs."),
+          N("8021X","802.1X and NAC",["L2","802.1X","AAA"],"Port access by identity before network use.","Assigns VLAN or VRF dynamically. Can add per user filters."),
+          N("VPN","VPN and MFA",["L3","VPN","MFA"],"Encrypted access for users or sites.","Integrates with routing. Use strong identity.")
         ],
         TEL: [
-          node("SNMP","SNMP",["Mgmt","SNMP"],"Device counters and health.","Feeds dashboards and alerts. Useful for capacity plans."),
-          node("NetFlow","NetFlow IPFIX",["Mgmt","NetFlow"],"Who talks to whom and how much.","Explains spikes and helps security checks."),
-          node("Syslog","Syslog",["Mgmt","Syslog"],"Device event messages with reasons.","Central store for audits and incident timelines."),
-          node("SPAN","SPAN RSPAN",["L2","SPAN"],"Copy packets to an analysis port.","Use with packet capture for truth on the wire."),
-          node("PCAP","Wireshark",["Mgmt","PCAP"],"Deep packet inspection of real traffic.","Confirms or disproves what counters suggest.")
+          N("SNMP","SNMP",["Mgmt","SNMP"],"Device counters and health.","Feeds dashboards and alerts. Useful for capacity plans."),
+          N("NetFlow","NetFlow IPFIX",["Mgmt","NetFlow"],"Who talks to whom and how much.","Explains spikes and helps security checks."),
+          N("Syslog","Syslog",["Mgmt","Syslog"],"Device event messages with reasons.","Central store for audits and incident timelines."),
+          N("SPAN","SPAN RSPAN",["L2","SPAN"],"Copy packets to an analysis port.","Use with packet capture for truth on the wire."),
+          N("PCAP","Wireshark",["Mgmt","PCAP"],"Deep packet inspection of real traffic.","Confirms or disproves what counters suggest.")
         ],
         SERV: [
-          node("DHCP","DHCP",["L3","DHCP"],"Hands out addresses and options to clients.","Needs helper on VLAN interfaces. Scopes per segment."),
-          node("DNS","DNS",["App","DNS"],"Name to address lookup.","Create records for both address families. Slow name service feels like an outage."),
-          node("NTP","NTP",["Infra","NTP"],"Clock sync for devices and servers.","Logs and security checks rely on correct time."),
-          node("AAA","RADIUS TACACS+",["Mgmt","AAA"],"Central login and permissions for admins and users.","Backs port authentication and device access.")
+          N("DHCP","DHCP",["L3","DHCP"],"Hands out addresses and options to clients.","Needs helper on VLAN interfaces. Scopes per segment."),
+          N("DNS","DNS",["App","DNS"],"Name to address lookup.","Create records for both address families. Slow name service feels like an outage."),
+          N("NTP","NTP",["Infra","NTP"],"Clock sync for devices and servers.","Logs and security checks rely on correct time."),
+          N("AAA","RADIUS TACACS+",["Mgmt","AAA"],"Central login and permissions for admins and users.","Backs port authentication and device access.")
         ],
         OPS: [
-          node("BACKUP","Config backups",["Ops","BACKUP"],"Versioned configs stored off device.","Used for rollback and audits."),
-          node("TEMPLATE","Templates and automation",["Ops","TEMPLATE"],"Reusable config blocks that cut typos.","Apply standards across VLANs, gateways, routing, and filters."),
-          node("TEST","Failover tests",["Ops","TEST"],"Planned link pulls and switchovers.","Proves virtual gateways, equal paths, and spanning tree under load.")
+          N("BACKUP","Config backups",["Ops","BACKUP"],"Versioned configs stored off device.","Used for rollback and audits."),
+          N("TEMPLATE","Templates and automation",["Ops","TEMPLATE"],"Reusable config blocks that cut typos.","Apply standards across VLANs, gateways, routing, and filters."),
+          N("TEST","Failover tests",["Ops","TEST"],"Planned link pulls and switchovers.","Proves virtual gateways, equal paths, and spanning tree under load.")
         ]
       }
     };
+    function N(tag,name,tags,what,link){ return { tag,name,tags,what,link }; }
 
-    // Helpers to create nodes
-    function node(tag,name,tags,what,link){ return { tag,name,tags,what,link }; }
+    /* ---------------------------------------------------------
+       Layout
+       Cards closer, still non overlapping, and readable
+    --------------------------------------------------------- */
+    const CARD_W = 440, CARD_H = 220;
+    const centerNode = { x:-CARD_W/2, y:-CARD_H/2, w:CARD_W, h:CARD_H,
+      name:model.center.name, tags:model.center.tags, what:model.center.what, link:model.center.link, cls:"center" };
 
-    /* -----------------------------
-       Build layout coordinates
-       ----------------------------- */
+    const hubRadius = 1900;                       // closer circle for hubs
+    const hubAngles = [-90,-30,15,70,130,-150,180,0];
+
     const hubs = [];
     const leaves = [];
-    const hubRadius = 3200;                 // very big spacing from center
-    const hubAngles = [-90,-35,20,80,135,-155,180,0];
-
-    // Center at (0,0)
-    const centerNode = {
-      x:-230, y:-120, w:460, h:240,
-      name:model.center.name, tags:model.center.tags,
-      what:model.center.what, link:model.center.link, cls:"center"
-    };
-
-    // Hub positions around a circle
     model.categories.forEach((c,i)=>{
       const p = polar(0,0,hubRadius,hubAngles[i]);
       const hub = {
-        id:c.id, name:c.name, tags:["Mgmt","Ops","L2","L3"], // generic tags
-        what:"Family of components you use in production.",
-        link:"Connects to the core map and the parts below.",
-        x: p.x - 230, y: p.y - 100, w:460, h:200, cls:"hub"
+        id:c.id, name:c.name, tags:["L2","L3","Mgmt","Ops"],
+        what:"Family of components used in production.",
+        link:"Connects to the core and to the parts below.",
+        x:p.x - CARD_W/2, y:p.y - 90, w:CARD_W, h:180, cls:"hub"
       };
       hubs.push(hub);
 
-      // Leaves spread away from hub with strong lateral offset
       const group = model.items[c.id] || [];
       const dir = norm({x:p.x, y:p.y});
       const perp = {x:-dir.y, y:dir.x};
+
       group.forEach((leaf,i2)=>{
-        const base = 1100 + i2*760;                   // distance out from hub
-        const spread = (i2 - (group.length-1)/2) * 520;
+        const base = 720 + i2*420;                 // reduced distance
+        const spread = (i2 - (group.length-1)/2) * 300; // tighter lateral spacing
         const cx = p.x + dir.x*base + perp.x*spread;
         const cy = p.y + dir.y*base + perp.y*spread;
         leaves.push({
-          parent:c.id,
-          name:leaf.name, tags:[...leaf.tags], what:leaf.what, link:leaf.link,
-          x: cx - 230, y: cy - 120, w:460, h:240, cls:""
+          parent:c.id, name:leaf.name, tags:[...leaf.tags], what:leaf.what, link:leaf.link,
+          x: cx - CARD_W/2, y: cy - CARD_H/2, w:CARD_W, h:CARD_H, cls:""
         });
       });
     });
 
-    /* -----------------------------
+    // Simple collision separation so cards do not overlap
+    separateCards([centerNode, ...hubs, ...leaves], 8);
+
+    /* ---------------------------------------------------------
        Render grid, edges, nodes
-       ----------------------------- */
+    --------------------------------------------------------- */
     const stage = document.getElementById('stage');
     const viewport = document.getElementById('viewport');
     const grid = document.getElementById('grid');
@@ -300,102 +288,133 @@
     const zoomVal = document.getElementById('zoomVal');
     const tip = document.getElementById('tip');
 
-    // Huge grid
-    drawGrid(-14000, -10000, 28000, 20000, 400);
+    drawGrid(-12000, -9000, 24000, 18000, 360);
 
-    // Edges: center to hubs
-    hubs.forEach(h=>{
-      drawEdge(240,100, h.x, h.y+100, true); // from center card corner
-    });
-    // Edges: hubs to leaves
+    hubs.forEach(h=> drawEdge(0,0, h.x, h.y+h.h/2, true));
     leaves.forEach(l=>{
       const hub = hubs.find(x=>x.id===l.parent);
       drawEdge(hub.x+hub.w, hub.y+hub.h/2, l.x, l.y+l.h/2, false);
     });
 
-    // Nodes
     addCard(centerNode);
     hubs.forEach(addCard);
     leaves.forEach(addCard);
 
-    /* -----------------------------
-       Pan and zoom controls
-       ----------------------------- */
-    let scale = 1, minScale = 0.25, maxScale = 4;
+    /* ---------------------------------------------------------
+       Pan and zoom with mouse and touch
+       - pinch to zoom with two fingers
+       - inertia on single finger pan
+       - double tap to zoom in
+    --------------------------------------------------------- */
+    let scale = 1, minScale = 0.35, maxScale = 2.6;
     let tx = stage.clientWidth/2, ty = stage.clientHeight/2;
     applyTransform();
+
+    // Fit initial view
+    fitToContent();
+
+    // Buttons
+    document.getElementById('btnZoomIn').onclick = ()=> zoomAtCenter(1.18);
+    document.getElementById('btnZoomOut').onclick = ()=> zoomAtCenter(1/1.18);
+    document.getElementById('btnReset').onclick = ()=> { scale=1; centerOn(0,0); applyTransform(); };
+    document.getElementById('btnFit').onclick = ()=> fitToContent();
+    window.addEventListener('resize', ()=> fitToContent(), {passive:true});
+
+    // Pointer tracking
+    const pointers = new Map();
+    let lastPanTime = 0, vx = 0, vy = 0, kineticId = 0;
+    let pinchStart = null;
+
+    stage.addEventListener('pointerdown', e=>{
+      stage.setPointerCapture(e.pointerId);
+      pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+      stopKinetic();
+
+      if(pointers.size === 1){
+        stage.classList.add('dragging');
+        lastPanTime = performance.now();
+      }
+      if(pointers.size === 2){
+        pinchStart = initPinch();
+      }
+    });
+
+    stage.addEventListener('pointermove', e=>{
+      const p = pointers.get(e.pointerId);
+      if(!p) return;
+      const now = performance.now();
+      const prev = {x:p.x, y:p.y};
+      p.x = e.clientX; p.y = e.clientY;
+
+      if(pointers.size === 1 && !pinchStart){
+        // single finger pan with velocity
+        const dt = Math.max(1, now - lastPanTime);
+        const dx = p.x - prev.x;
+        const dy = p.y - prev.y;
+        tx += dx; ty += dy;
+        vx = dx / dt; vy = dy / dt;
+        lastPanTime = now;
+        applyTransform();
+      }
+      if(pinchStart && pointers.size === 2){
+        doPinch(pinchStart);
+      }
+    });
+
+    stage.addEventListener('pointerup', e=>{
+      stage.releasePointerCapture(e.pointerId);
+      pointers.delete(e.pointerId);
+
+      if(pointers.size === 0){
+        stage.classList.remove('dragging');
+        startKinetic(); // inertia after pan
+      }
+      if(pointers.size < 2){
+        pinchStart = null;
+      }
+    });
+
+    stage.addEventListener('pointercancel', e=>{
+      pointers.delete(e.pointerId);
+      stage.classList.remove('dragging');
+      pinchStart = null;
+    });
 
     // Wheel zoom at cursor
     stage.addEventListener('wheel', e=>{
       e.preventDefault();
       const rect = stage.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-      const prev = scale;
-      const factor = Math.exp((-e.deltaY) * 0.0016);
-      scale = clamp(prev*factor, minScale, maxScale);
-
-      const cx = (sx - tx) / prev;
-      const cy = (sy - ty) / prev;
-      tx = sx - cx * scale;
-      ty = sy - cy * scale;
-
-      applyTransform();
+      smoothZoomAt(e.clientX - rect.left, e.clientY - rect.top, Math.exp((-e.deltaY) * 0.0018));
     }, {passive:false});
 
-    // Drag to pan
-    let dragging=false, px=0, py=0;
+    // Double tap to zoom in
+    let lastTap=0;
     stage.addEventListener('pointerdown', e=>{
-      if(e.button!==0) return;
-      dragging=true; px=e.clientX; py=e.clientY;
-      stage.setPointerCapture(e.pointerId);
-      stage.classList.add('dragging');
-    });
-    stage.addEventListener('pointermove', e=>{
-      if(!dragging) return;
-      const dx = e.clientX - px;
-      const dy = e.clientY - py;
-      px = e.clientX; py = e.clientY;
-      tx += dx; ty += dy;
-      applyTransform();
-    });
-    stage.addEventListener('pointerup', e=>{
-      dragging=false;
-      stage.releasePointerCapture(e.pointerId);
-      stage.classList.remove('dragging');
+      const now = performance.now();
+      if(now - lastTap < 280 && pointers.size === 1){
+        const rect = stage.getBoundingClientRect();
+        smoothZoomAt(e.clientX - rect.left, e.clientY - rect.top, 1.25);
+      }
+      lastTap = now;
     });
 
-    // Buttons
-    document.getElementById('btnZoomIn').onclick = ()=> zoomAtCenter(1.15);
-    document.getElementById('btnZoomOut').onclick = ()=> zoomAtCenter(1/1.15);
-    document.getElementById('btnReset').onclick = ()=> { scale=1; centerOn(0,0); applyTransform(); };
-    document.getElementById('btnFit').onclick = ()=> fitToContent();
-    window.addEventListener('resize', ()=> fitToContent());
-
-    // Fit view initially
-    fitToContent();
-
-    /* -----------------------------
-       Tooltip population
-       ----------------------------- */
+    /* ---------------------------------------------------------
+       Tooltip
+    --------------------------------------------------------- */
     function showTip(title, tags){
       const defs = (tags||[])
         .map(t => GLOSSARY[t])
         .filter(Boolean)
-        .map(text => `<div class="def"><code>${escapeHTML(getAcr(text))}</code> ${escapeHTML(text)}</div>`)
+        .map(txt => `<div class="def"><code>${escapeHTML(getAcr(txt))}</code> ${escapeHTML(txt)}</div>`)
         .join("");
       tip.innerHTML = `<h3>${escapeHTML(title)}</h3>` +
-                      (defs || `<p class="mini">Hover other cards to see plain definitions.</p>`);
+                      (defs || `<p class="mini">Tap other cards to see plain definitions.</p>`);
     }
-    function getAcr(text){
-      // Pull acronym inside parentheses at the end
-      const m = text.match(/\(([^)]+)\)\.?$/);
-      return m ? m[1] : "INFO";
-    }
+    function getAcr(text){ const m = text.match(/\(([^)]+)\)\.?$/); return m ? m[1] : "INFO"; }
 
-    /* -----------------------------
-       Render helpers
-       ----------------------------- */
+    /* ---------------------------------------------------------
+       Helpers: render, layout, math
+    --------------------------------------------------------- */
     function addCard(n){
       const el = document.createElement('div');
       el.className = `card ${n.cls||""}`;
@@ -411,8 +430,9 @@
         <div class="what"><b>What it does</b>: ${escapeHTML(n.what)}</div>
         <div class="link"><b>How it links</b>: ${escapeHTML(n.link)}</div>
       `;
+      // Touch friendly tooltip trigger
       el.addEventListener('mouseenter', ()=> showTip(n.name, n.tags));
-      el.addEventListener('focus', ()=> showTip(n.name, n.tags));
+      el.addEventListener('click', ()=> showTip(n.name, n.tags));
       nodes.appendChild(el);
     }
 
@@ -434,62 +454,140 @@
 
     function drawEdge(ax,ay,bx,by,isCenter){
       const path = document.createElementNS("http://www.w3.org/2000/svg","path");
-      // Smooth cubic curve midpoint
       const mx = (ax+bx)/2;
-      const d = `M ${ax} ${ay} C ${mx} ${ay}, ${mx} ${by}, ${bx} ${by}`;
-      path.setAttribute("d", d);
+      path.setAttribute("d", `M ${ax} ${ay} C ${mx} ${ay}, ${mx} ${by}, ${bx} ${by}`);
       path.setAttribute("class", isCenter ? "edge center" : "edge");
       edges.appendChild(path);
     }
 
+    // Pan and zoom transforms
     function applyTransform(){
       viewport.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
       zoomVal.textContent = Math.round(scale*100) + "%";
     }
+    function centerOn(x,y){
+      tx = stage.clientWidth/2 - x*scale;
+      ty = stage.clientHeight/2 - y*scale;
+    }
 
     function fitToContent(){
-      const boxes = [];
-      boxes.push(centerNode);
-      hubs.forEach(h=> boxes.push(h));
-      leaves.forEach(l=> boxes.push(l));
-
+      const boxes = [centerNode, ...hubs, ...leaves];
       const b = boxes.reduce((o,r)=>({
         minX: Math.min(o.minX, r.x), minY: Math.min(o.minY, r.y),
         maxX: Math.max(o.maxX, r.x + r.w), maxY: Math.max(o.maxY, r.y + r.h)
       }), {minX:Infinity, minY:Infinity, maxX:-Infinity, maxY:-Infinity});
 
-      const margin = 800;
+      const margin = 400;
       const w = (b.maxX - b.minX) + margin*2;
       const h = (b.maxY - b.minY) + margin*2;
 
-      const vw = stage.clientWidth;
-      const vh = stage.clientHeight;
+      const vw = stage.clientWidth, vh = stage.clientHeight;
+      scale = clamp(Math.min(vw / w, vh / h), minScale, maxScale);
 
-      scale = clamp(Math.min(vw / w, vh / h), 0.2, maxScale);
       const cx = (b.minX + b.maxX)/2;
       const cy = (b.minY + b.maxY)/2;
-
-      // place content center at stage center
       tx = vw/2 - cx*scale;
       ty = vh/2 - cy*scale;
 
       applyTransform();
     }
 
-    function zoomAtCenter(mult){
-      const vw = stage.clientWidth, vh = stage.clientHeight;
+    // Smooth zoom at screen point
+    function smoothZoomAt(sx,sy,factor){
       const prev = scale;
-      scale = clamp(prev*mult, minScale, maxScale);
-      const px = (vw/2 - tx)/prev, py = (vh/2 - ty)/prev;
-      tx = vw/2 - px*scale; ty = vh/2 - py*scale;
+      const target = clamp(prev*factor, minScale, maxScale);
+      animateZoom(prev, target, sx, sy, 140);
+    }
+    function zoomAtCenter(mult){
+      const cx = stage.clientWidth/2, cy = stage.clientHeight/2;
+      smoothZoomAt(cx, cy, mult);
+    }
+    function animateZoom(from, to, sx, sy, ms){
+      const start = performance.now();
+      const px = (sx - tx)/from, py = (sy - ty)/from;
+      function step(now){
+        const t = clamp((now - start)/ms, 0, 1);
+        const k = easeOutCubic(t);
+        scale = from + (to - from)*k;
+        tx = sx - px*scale;
+        ty = sy - py*scale;
+        applyTransform();
+        if(t < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    // Inertia after pan
+    function startKinetic(){
+      const decay = 0.95; // friction
+      const minVel = 0.02;
+      const frame = ()=>{
+        vx *= decay; vy *= decay;
+        if(Math.abs(vx) < minVel && Math.abs(vy) < minVel){ kineticId = 0; return; }
+        tx += vx * 16 * 14; // scale velocity to pixels
+        ty += vy * 16 * 14;
+        applyTransform();
+        kineticId = requestAnimationFrame(frame);
+      };
+      stopKinetic();
+      kineticId = requestAnimationFrame(frame);
+    }
+    function stopKinetic(){ if(kineticId){ cancelAnimationFrame(kineticId); kineticId = 0; } }
+
+    // Pinch helpers
+    function initPinch(){
+      const pts = Array.from(pointers.values());
+      const c = mid(pts[0], pts[1]);
+      const rect = stage.getBoundingClientRect();
+      const sx = c.x - rect.left, sy = c.y - rect.top;
+      const d = dist(pts[0], pts[1]);
+      const cx = (sx - tx)/scale, cy = (sy - ty)/scale;
+      return { sx, sy, d, cx, cy, baseScale:scale };
+    }
+    function doPinch(ps){
+      const pts = Array.from(pointers.values());
+      const dNow = dist(pts[0], pts[1]);
+      const factor = clamp(dNow / ps.d, 0.3, 3);
+      scale = clamp(ps.baseScale * factor, minScale, maxScale);
+      tx = ps.sx - ps.cx * scale;
+      ty = ps.sy - ps.cy * scale;
       applyTransform();
     }
 
-    /* Math helpers */
+    /* ---------------------------------------------------------
+       Collision separation
+       Simple nudge to avoid overlap while keeping things close
+    --------------------------------------------------------- */
+    function separateCards(list, passes){
+      for(let k=0;k<passes;k++){
+        for(let i=0;i<list.length;i++){
+          for(let j=i+1;j<list.length;j++){
+            const a = list[i], b = list[j];
+            if(overlap(a,b)){
+              const dx = (a.x + a.w/2) - (b.x + b.w/2);
+              const dy = (a.y + a.h/2) - (b.y + b.h/2);
+              const n = Math.hypot(dx,dy) || 1;
+              const push = 18; // small nudge so cards end up near each other
+              const ux = dx/n, uy = dy/n;
+              a.x += ux*push; a.y += uy*push;
+              b.x -= ux*push; b.y -= uy*push;
+            }
+          }
+        }
+      }
+    }
+    function overlap(a,b){
+      return !(a.x+a.w+12 < b.x || b.x+b.w+12 < a.x || a.y+a.h+12 < b.y || b.y+b.h+12 < a.y);
+    }
+
+    /* Math and utils */
     function polar(cx,cy,r,deg){ const t=deg*Math.PI/180; return {x:cx+r*Math.cos(t), y:cy+r*Math.sin(t)}; }
     function norm(v){ const n=Math.hypot(v.x,v.y)||1; return {x:v.x/n, y:v.y/n}; }
     function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
     function escapeHTML(s){ return (s||"").replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+    function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+    function mid(a,b){ return {x:(a.x+b.x)/2, y:(a.y+b.y)/2}; }
+    function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
   </script>
 </body>
 </html>
