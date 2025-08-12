@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Practical Network Mindmap — Touch Friendly</title>
+  <title>Practical Network Mindmap — Touch Friendly + Troubleshooting</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -33,24 +33,21 @@
     .btn:active{transform:translateY(1px)}
     .zoomval{color:#cfe2ff;font-weight:800;margin-left:6px;min-width:56px;display:inline-block}
 
-    /* Stage with true pan and zoom */
     #stage{position:fixed; inset:56px 0 0 0; background:#0f1221; touch-action:none; cursor:grab; user-select:none}
     #stage.dragging{cursor:grabbing}
     #viewport{position:absolute; left:0; top:0; transform-origin:0 0; width:1px; height:1px}
 
-    /* Grid */
     #grid{position:absolute; left:0; top:0; width:1px; height:1px; overflow:visible; pointer-events:none}
     #grid line{stroke:#16204e;stroke-width:1}
 
-    /* Edges */
     #edges{position:absolute; left:0; top:0; width:1px; height:1px; overflow:visible; pointer-events:none}
     .edge{fill:none;stroke:var(--edge-soft);stroke-width:3.5;stroke-linecap:round;opacity:.95}
     .edge.center{stroke:var(--edge);stroke-width:4.5;opacity:1}
 
-    /* Cards */
     .card{
       position:absolute;
       width:440px;
+      max-height:300px;
       background:linear-gradient(180deg,#1b2354 0%, var(--card) 100%);
       border:4px solid #6ea3ff;
       border-radius:var(--radius);
@@ -58,6 +55,9 @@
       box-shadow:0 18px 36px rgba(0,0,0,.42);
       padding:12px 14px;
       outline:2px solid rgba(255,255,255,.12);
+      overflow:auto; /* scroll if troubleshooting text is long */
+      scrollbar-width:thin;
+      scrollbar-color:#6ea3ff #0e1333;
     }
     .card.center{ border-color:var(--accent3) }
     .card.hub{ border-color:var(--accent2) }
@@ -72,7 +72,11 @@
     .name{font-weight:800;margin:2px 0 6px;letter-spacing:.2px}
     .what,.link{font-size:12.5px;color:var(--muted);margin:6px 0}
 
-    /* Sticky tooltip */
+    .ts{margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.14)}
+    .ts b{font-size:12.5px}
+    .tline{font-size:12.5px;color:#d7ddff;margin:4px 0;display:flex;gap:8px;align-items:flex-start}
+    .dot{width:6px;height:6px;border-radius:50%;background:#a3c4ff;flex:0 0 6px;position:relative;top:6px}
+
     .tip{
       position:fixed; right:18px; bottom:18px; z-index:6;
       width:520px; max-height:50vh; overflow:auto;
@@ -114,10 +118,8 @@
   </div>
 
   <script>
-    /* ---------------------------------------------------------
-       Data model with practical components
-       Keep tags small and clear. Tooltip shows meaning (sigla).
-    --------------------------------------------------------- */
+    /* Touch friendly pan and zoom with troubleshooting content */
+
     const GLOSSARY = {
       "VLAN":"Virtual local area network, separate broadcast domains on one switch (VLAN).",
       "802.1Q":"VLAN tagging method that inserts a small identifier in the frame (802.1Q).",
@@ -169,7 +171,11 @@
         name:"Network components and how they connect",
         what:"Tangible pieces you configure in production.",
         link:"Plan changes and spot dependencies fast.",
-        tags:["L2","L3","Mgmt","Ops"]
+        tags:["L2","L3","Mgmt","Ops"],
+        ts:[
+          "If the map does not match reality check diagrams, LLDP neighbors, and naming.",
+          "When flows fail trace path first, then open the card closest to the break."
+        ]
       },
       categories: [
         { id:"L2",   name:"Layer 2 switching and loops" },
@@ -183,67 +189,202 @@
       ],
       items: {
         L2: [
-          N("VLAN","VLAN (802.1Q)",["L2","VLAN","802.1Q"],"Separate broadcast domains on one switch.","Feeds inter VLAN routing. Uses trunks. Protected by spanning tree."),
-          N("TRUNK","Trunks",["L2","TRUNK","802.1Q"],"Carry multiple VLANs over one link.","Connects switches and router on a stick. Needed so SVIs see traffic."),
-          N("STP","STP RSTP MSTP",["L2","STP","MSTP"],"Prevents loops and converges on failure.","Works under VLANs and trunks. Cooperates with link aggregation."),
-          N("LACP","EtherChannel",["L2","LACP"],"Bonds links into one logical pipe.","Used for resilient trunks and server uplinks.")
+          N("VLAN","VLAN (802.1Q)",["L2","VLAN","802.1Q"],
+            "Separate broadcast domains on one switch.",
+            "Feeds inter VLAN routing. Uses trunks. Protected by spanning tree.",
+            ["Hosts cannot reach gateway check vlan exists and access port assignment.",
+             "Use show vlan brief and show interfaces switchport.",
+             "For trunks verify allowed VLANs and native settings with show interfaces trunk."]),
+          N("TRUNK","Trunks",["L2","TRUNK","802.1Q"],
+            "Carry multiple VLANs over one link.",
+            "Connects switches and router on a stick. Needed so SVIs see traffic.",
+            ["If a VLAN does not cross a link check allowed list and native mismatch.",
+             "Use show interfaces trunk and counters for drops or errors."]),
+          N("STP","STP RSTP MSTP",["L2","STP","MSTP"],
+            "Prevents loops and converges on failure.",
+            "Works under VLANs and trunks. Cooperates with link aggregation.",
+            ["Slow or intermittent pings look for a blocked port or topology changes.",
+             "Use show spanning-tree and show spanning-tree detail for last change."]),
+          N("LACP","EtherChannel",["L2","LACP"],
+            "Bonds links into one logical pipe.",
+            "Used for resilient trunks and server uplinks.",
+            ["One link carries all traffic check hashing and member states.",
+             "Use show etherchannel summary and show interfaces counters."])
         ],
         L3: [
-          N("SVI","SVI gateways",["L3","SVI"],"Default gateway per VLAN on the switch.","Depends on VLAN presence. Often paired with a virtual gateway."),
-          N("RoaS","Router on a stick",["L3","RoaS","802.1Q"],"Router subinterfaces per VLAN on one port.","Good in labs and small sites. Replaced by SVIs when scale grows."),
-          N("OSPF","OSPF",["L3","OSPF"],"Interior routing that finds shortest paths.","Advertises VLAN gateways and transit links. Enables equal paths."),
-          N("EIGRP","EIGRP",["L3","EIGRP"],"Cisco interior routing with fast convergence.","Alternative to OSPF in single vendor networks."),
-          N("BGP","BGP",["L3","BGP","EVPN"],"Policy routing between networks.","Used at internet edges and for overlays. Needs a stable underlay."),
-          N("NAT","NAT PAT",["L3","NAT"],"Maps private space to public addresses.","Lives at borders next to the firewall. Needs correct return paths.")
+          N("SVI","SVI gateways",["L3","SVI"],
+            "Default gateway per VLAN on the switch.",
+            "Depends on VLAN presence. Often paired with a virtual gateway.",
+            ["SVI down line protocol down check VLAN up and port membership.",
+             "Use show ip interface brief and show vlan brief.",
+             "If routing on switch confirm ip routing and ACLs."]),
+          N("RoaS","Router on a stick",["L3","RoaS","802.1Q"],
+            "Router subinterfaces per VLAN on one port.",
+            "Good in labs and small sites. Replaced by SVIs when scale grows.",
+            ["No inter VLAN traffic verify encapsulation dot1Q tag per subinterface.",
+             "Use show run interface and show ip interface brief."]),
+          N("OSPF","OSPF",["L3","OSPF"],
+            "Interior routing that finds shortest paths.",
+            "Advertises VLAN gateways and transit links. Enables equal paths.",
+            ["Neighbors stuck at EXSTART or 2WAY check area id, MTU, and timers.",
+             "Use debug ip ospf events, show ip ospf neighbor, show ip protocols."]),
+          N("EIGRP","EIGRP",["L3","EIGRP"],
+            "Cisco interior routing with fast convergence.",
+            "Alternative to OSPF in single vendor networks.",
+            ["Adjacency drops with hold time expired check AS number and network statements.",
+             "Use show ip eigrp neighbors and debug eigrp packets."]),
+          N("BGP","BGP",["L3","BGP","EVPN"],
+            "Policy routing between networks.",
+            "Used at internet edges and for overlays. Needs a stable underlay.",
+            ["State Idle or Active verify neighbor reachability and TCP port.",
+             "Mismatch in policy check route maps and filters.",
+             "Use show ip bgp summary and show ip bgp."]),
+          N("NAT","NAT PAT",["L3","NAT"],
+            "Maps private space to public addresses.",
+            "Lives at borders next to the firewall. Needs correct return paths.",
+            ["No translation entries verify ip nat inside outside on interfaces.",
+             "Use show ip nat translations and show access-lists hit counts."])
         ],
         SEG: [
-          N("VRF","VRF",["L3","VRF"],"Separate routing tables on one device.","Pairs with VLANs and filters. Each VRF runs its own routing."),
-          N("VXLAN","VXLAN overlays",["L2","VXLAN","EVPN"],"Carries layer 2 across layer 3 fabric.","Rides the underlay routing. Requires higher MTU."),
-          N("PVLAN","Private VLAN",["L2","PVLAN"],"Isolates hosts inside a subnet.","Useful in DMZ or multi tenant racks with a shared gateway.")
+          N("VRF","VRF",["L3","VRF"],
+            "Separate routing tables on one device.",
+            "Pairs with VLANs and filters. Each VRF runs its own routing.",
+            ["Traffic leaks or is missing check import and export points.",
+             "Use show ip route vrf NAME and interface vrf forwarding."]),
+          N("VXLAN","VXLAN overlays",["L2","VXLAN","EVPN"],
+            "Carries layer 2 across layer 3 fabric.",
+            "Rides the underlay routing. Requires higher MTU.",
+            ["Packet loss on large frames verify MTU and VTEP reachability.",
+             "Check EVPN routes and NVE interface status."]),
+          N("PVLAN","Private VLAN",["L2","PVLAN"],
+            "Isolates hosts inside a subnet.",
+            "Useful in DMZ or multi tenant racks with a shared gateway.",
+            ["Hosts talk when they should not verify primary, isolated, and promiscuous mapping.",
+             "Use show vlan private-vlan and test with pings."])
         ],
         HA: [
-          N("HSRP","HSRP VRRP",["L3","HSRP","VRRP"],"Virtual gateway with active and standby.","Fronts SVIs or routed links. Keep peer configs aligned."),
-          N("ECMP","ECMP",["L3","ECMP"],"Splits flows across equal routes.","Comes from the interior routing or policies. Works best on similar links."),
-          N("DUAL","Dual power and paths",["Ops","L2","L3"],"Two power feeds and independent uplinks.","Supports every other control. Combine with aggregation and virtual gateways.")
+          N("HSRP","HSRP VRRP",["L3","HSRP","VRRP"],
+            "Virtual gateway with active and standby.",
+            "Fronts SVIs or routed links. Keep peer configs aligned.",
+            ["Gateway flaps check priorities, preempt, and track objects.",
+             "Use show standby or show vrrp and interface logs."]),
+          N("ECMP","ECMP",["L3","ECMP"],
+            "Splits flows across equal routes.",
+            "Comes from the interior routing or policies. Works best on similar links.",
+            ["Asymmetric returns or session drops verify hashing and consistent next hops.",
+             "Use show ip route, show cef, and interface utilization."]),
+          N("DUAL","Dual power and paths",["Ops","L2","L3"],
+            "Two power feeds and independent uplinks.",
+            "Supports every other control. Combine with aggregation and virtual gateways.",
+            ["Unexpected outage during maintenance trace which side lacks redundancy.",
+             "Test failover on a schedule and record results."])
         ],
         SEC: [
-          N("ACL","ACLs",["L3","ACL"],"Permit or deny by address and port.","Applied on SVIs, routed links, and device lines. Mirror for IPv6."),
-          N("NGFW","Next gen firewall",["L3","NGFW"],"Stateful filtering with app awareness.","Place at boundaries. Uses routes and identity to decide."),
-          N("IDS","IDS IPS",["L3","IDS"],"Detects attacks, inline version can block.","Inline or via mirrored traffic. Send findings to security logs."),
-          N("8021X","802.1X and NAC",["L2","802.1X","AAA"],"Port access by identity before network use.","Assigns VLAN or VRF dynamically. Can add per user filters."),
-          N("VPN","VPN and MFA",["L3","VPN","MFA"],"Encrypted access for users or sites.","Integrates with routing. Use strong identity.")
+          N("ACL","ACLs",["L3","ACL"],
+            "Permit or deny by address and port.",
+            "Applied on SVIs, routed links, and device lines. Mirror for IPv6.",
+            ["Legit traffic blocked check rule order and implicit deny at end.",
+             "Use show access-lists with counters and where it is applied."]),
+          N("NGFW","Next gen firewall",["L3","NGFW"],
+            "Stateful filtering with app awareness.",
+            "Place at boundaries. Uses routes and identity to decide.",
+            ["App works on one path only check app id and policy match.",
+             "Inspect logs and session tables for drop reason."]),
+          N("IDS","IDS IPS",["L3","IDS"],
+            "Detects attacks, inline version can block.",
+            "Inline or via mirrored traffic. Send findings to security logs.",
+            ["False positives or silence verify SPAN direction and filter.",
+             "Tune signatures and confirm timestamps with NTP."]),
+          N("8021X","802.1X and NAC",["L2","802.1X","AAA"],
+            "Port access by identity before network use.",
+            "Assigns VLAN or VRF dynamically. Can add per user filters.",
+            ["Client stuck in auth check supplicant settings and RADIUS keys.",
+             "Use show authentication sessions and RADIUS logs."]),
+          N("VPN","VPN and MFA",["L3","VPN","MFA"],
+            "Encrypted access for users or sites.",
+            "Integrates with routing. Use strong identity.",
+            ["Tunnel up but no reachability verify routes and split include lists.",
+             "Check phase one and two parameters and peer identity."])
         ],
         TEL: [
-          N("SNMP","SNMP",["Mgmt","SNMP"],"Device counters and health.","Feeds dashboards and alerts. Useful for capacity plans."),
-          N("NetFlow","NetFlow IPFIX",["Mgmt","NetFlow"],"Who talks to whom and how much.","Explains spikes and helps security checks."),
-          N("Syslog","Syslog",["Mgmt","Syslog"],"Device event messages with reasons.","Central store for audits and incident timelines."),
-          N("SPAN","SPAN RSPAN",["L2","SPAN"],"Copy packets to an analysis port.","Use with packet capture for truth on the wire."),
-          N("PCAP","Wireshark",["Mgmt","PCAP"],"Deep packet inspection of real traffic.","Confirms or disproves what counters suggest.")
+          N("SNMP","SNMP",["Mgmt","SNMP"],
+            "Device counters and health.",
+            "Feeds dashboards and alerts. Useful for capacity plans.",
+            ["No data check community or SNMPv3 auth and firewall rules.",
+             "Verify OIDs and poller reachability."]),
+          N("NetFlow","NetFlow IPFIX",["Mgmt","NetFlow"],
+            "Who talks to whom and how much.",
+            "Explains spikes and helps security checks.",
+            ["Collector shows zero flows verify exporter source, template, and port.",
+             "Use show flow exporter and monitor status."]),
+          N("Syslog","Syslog",["Mgmt","Syslog"],
+            "Device event messages with reasons.",
+            "Central store for audits and incident timelines.",
+            ["Missing events check logging level, facility, and server IP.",
+             "Sync time with NTP so sequences make sense."]),
+          N("SPAN","SPAN RSPAN",["L2","SPAN"],
+            "Copy packets to an analysis port.",
+            "Use with packet capture for truth on the wire.",
+            ["Analyzer sees nothing verify source direction and RSPAN VLAN.",
+             "Watch oversubscription on the destination port."]),
+          N("PCAP","Wireshark",["Mgmt","PCAP"],
+            "Deep packet inspection of real traffic.",
+            "Confirms or disproves what counters suggest.",
+            ["Capture shows only one side check local path and filters.",
+             "Validate checksum offload settings on the NIC."])
         ],
         SERV: [
-          N("DHCP","DHCP",["L3","DHCP"],"Hands out addresses and options to clients.","Needs helper on VLAN interfaces. Scopes per segment."),
-          N("DNS","DNS",["App","DNS"],"Name to address lookup.","Create records for both address families. Slow name service feels like an outage."),
-          N("NTP","NTP",["Infra","NTP"],"Clock sync for devices and servers.","Logs and security checks rely on correct time."),
-          N("AAA","RADIUS TACACS+",["Mgmt","AAA"],"Central login and permissions for admins and users.","Backs port authentication and device access.")
+          N("DHCP","DHCP",["L3","DHCP"],
+            "Hands out addresses and options to clients.",
+            "Needs helper on VLAN interfaces. Scopes per segment.",
+            ["Clients get APIPA check helper address and scope exhaustion.",
+             "Confirm DORA sequence with a quick capture."]),
+          N("DNS","DNS",["App","DNS"],
+            "Name to address lookup.",
+            "Create records for both address families. Slow name service feels like an outage.",
+            ["App opens by IP but not by name check records and recursion.",
+             "Measure response time and TTLs."]),
+          N("NTP","NTP",["Infra","NTP"],
+            "Clock sync for devices and servers.",
+            "Logs and security checks rely on correct time.",
+            ["Offsets grow over hours verify upstream reachability and stratum.",
+             "Use show ntp associations and force a sync if needed."]),
+          N("AAA","RADIUS TACACS+",["Mgmt","AAA"],
+            "Central login and permissions for admins and users.",
+            "Backs port authentication and device access.",
+            ["Login fails after change check shared key and device clock.",
+             "Review policy set and account mapping."])
         ],
         OPS: [
-          N("BACKUP","Config backups",["Ops","BACKUP"],"Versioned configs stored off device.","Used for rollback and audits."),
-          N("TEMPLATE","Templates and automation",["Ops","TEMPLATE"],"Reusable config blocks that cut typos.","Apply standards across VLANs, gateways, routing, and filters."),
-          N("TEST","Failover tests",["Ops","TEST"],"Planned link pulls and switchovers.","Proves virtual gateways, equal paths, and spanning tree under load.")
+          N("BACKUP","Config backups",["Ops","BACKUP"],
+            "Versioned configs stored off device.",
+            "Used for rollback and audits.",
+            ["No file on server check credentials and storage path.",
+             "Test restore on a lab device regularly."]),
+          N("TEMPLATE","Templates and automation",["Ops","TEMPLATE"],
+            "Reusable config blocks that cut typos.",
+            "Apply standards across VLANs, gateways, routing, and filters.",
+            ["Drift after deploy compare running config to template.",
+             "Parameterize IPs and secrets rather than hard coding."]),
+          N("TEST","Failover tests",["Ops","TEST"],
+            "Planned link pulls and switchovers.",
+            "Proves virtual gateways, equal paths, and spanning tree under load.",
+            ["If test causes outage review change window and rollback steps.",
+             "Record timings and adjust thresholds or timers."])
         ]
       }
     };
-    function N(tag,name,tags,what,link){ return { tag,name,tags,what,link }; }
 
-    /* ---------------------------------------------------------
-       Layout
-       Cards closer, still non overlapping, and readable
-    --------------------------------------------------------- */
-    const CARD_W = 440, CARD_H = 220;
-    const centerNode = { x:-CARD_W/2, y:-CARD_H/2, w:CARD_W, h:CARD_H,
-      name:model.center.name, tags:model.center.tags, what:model.center.what, link:model.center.link, cls:"center" };
+    function N(tag,name,tags,what,link,tsLines){ return { tag,name,tags,what,link,ts:tsLines||[] }; }
 
-    const hubRadius = 1900;                       // closer circle for hubs
+    /* Layout: cards closer but not overlapping */
+    const CARD_W = 440, CARD_H = 300;
+    const centerNode = {
+      x:-CARD_W/2, y:-CARD_H/2, w:CARD_W, h:CARD_H,
+      name:model.center.name, tags:model.center.tags, what:model.center.what, link:model.center.link, cls:"center", ts:model.center.ts
+    };
+
+    const hubRadius = 1700;
     const hubAngles = [-90,-30,15,70,130,-150,180,0];
 
     const hubs = [];
@@ -254,7 +395,7 @@
         id:c.id, name:c.name, tags:["L2","L3","Mgmt","Ops"],
         what:"Family of components used in production.",
         link:"Connects to the core and to the parts below.",
-        x:p.x - CARD_W/2, y:p.y - 90, w:CARD_W, h:180, cls:"hub"
+        x:p.x - CARD_W/2, y:p.y - 80, w:CARD_W, h:200, cls:"hub", ts:["If many leaves break at once check this hub first.","Confirm edges and VLAN or routing between hub and leaves."]
       };
       hubs.push(hub);
 
@@ -263,23 +404,19 @@
       const perp = {x:-dir.y, y:dir.x};
 
       group.forEach((leaf,i2)=>{
-        const base = 720 + i2*420;                 // reduced distance
-        const spread = (i2 - (group.length-1)/2) * 300; // tighter lateral spacing
+        const base = 640 + i2*360;
+        const spread = (i2 - (group.length-1)/2) * 260;
         const cx = p.x + dir.x*base + perp.x*spread;
         const cy = p.y + dir.y*base + perp.y*spread;
         leaves.push({
-          parent:c.id, name:leaf.name, tags:[...leaf.tags], what:leaf.what, link:leaf.link,
+          parent:c.id, name:leaf.name, tags:[...leaf.tags], what:leaf.what, link:leaf.link, ts:leaf.ts||[],
           x: cx - CARD_W/2, y: cy - CARD_H/2, w:CARD_W, h:CARD_H, cls:""
         });
       });
     });
 
-    // Simple collision separation so cards do not overlap
-    separateCards([centerNode, ...hubs, ...leaves], 8);
+    separateCards([centerNode, ...hubs, ...leaves], 10);
 
-    /* ---------------------------------------------------------
-       Render grid, edges, nodes
-    --------------------------------------------------------- */
     const stage = document.getElementById('stage');
     const viewport = document.getElementById('viewport');
     const grid = document.getElementById('grid');
@@ -300,27 +437,18 @@
     hubs.forEach(addCard);
     leaves.forEach(addCard);
 
-    /* ---------------------------------------------------------
-       Pan and zoom with mouse and touch
-       - pinch to zoom with two fingers
-       - inertia on single finger pan
-       - double tap to zoom in
-    --------------------------------------------------------- */
+    /* Pan and zoom with mouse and touch */
     let scale = 1, minScale = 0.35, maxScale = 2.6;
     let tx = stage.clientWidth/2, ty = stage.clientHeight/2;
     applyTransform();
-
-    // Fit initial view
     fitToContent();
 
-    // Buttons
     document.getElementById('btnZoomIn').onclick = ()=> zoomAtCenter(1.18);
     document.getElementById('btnZoomOut').onclick = ()=> zoomAtCenter(1/1.18);
     document.getElementById('btnReset').onclick = ()=> { scale=1; centerOn(0,0); applyTransform(); };
     document.getElementById('btnFit').onclick = ()=> fitToContent();
     window.addEventListener('resize', ()=> fitToContent(), {passive:true});
 
-    // Pointer tracking
     const pointers = new Map();
     let lastPanTime = 0, vx = 0, vy = 0, kineticId = 0;
     let pinchStart = null;
@@ -347,7 +475,6 @@
       p.x = e.clientX; p.y = e.clientY;
 
       if(pointers.size === 1 && !pinchStart){
-        // single finger pan with velocity
         const dt = Math.max(1, now - lastPanTime);
         const dx = p.x - prev.x;
         const dy = p.y - prev.y;
@@ -367,7 +494,7 @@
 
       if(pointers.size === 0){
         stage.classList.remove('dragging');
-        startKinetic(); // inertia after pan
+        startKinetic();
       }
       if(pointers.size < 2){
         pinchStart = null;
@@ -380,14 +507,12 @@
       pinchStart = null;
     });
 
-    // Wheel zoom at cursor
     stage.addEventListener('wheel', e=>{
       e.preventDefault();
       const rect = stage.getBoundingClientRect();
       smoothZoomAt(e.clientX - rect.left, e.clientY - rect.top, Math.exp((-e.deltaY) * 0.0018));
     }, {passive:false});
 
-    // Double tap to zoom in
     let lastTap=0;
     stage.addEventListener('pointerdown', e=>{
       const now = performance.now();
@@ -398,9 +523,6 @@
       lastTap = now;
     });
 
-    /* ---------------------------------------------------------
-       Tooltip
-    --------------------------------------------------------- */
     function showTip(title, tags){
       const defs = (tags||[])
         .map(t => GLOSSARY[t])
@@ -412,9 +534,6 @@
     }
     function getAcr(text){ const m = text.match(/\(([^)]+)\)\.?$/); return m ? m[1] : "INFO"; }
 
-    /* ---------------------------------------------------------
-       Helpers: render, layout, math
-    --------------------------------------------------------- */
     function addCard(n){
       const el = document.createElement('div');
       el.className = `card ${n.cls||""}`;
@@ -424,13 +543,16 @@
       el.style.height = n.h + "px";
 
       const chips = (n.tags||[]).map(t=>`<span class="tag">${escapeHTML(t)}</span>`).join("");
+      const ts = (n.ts||[]).map(line=>`
+        <div class="tline"><span class="dot"></span><span>${escapeHTML(line)}</span></div>
+      `).join("");
       el.innerHTML = `
         <div class="chips">${chips}</div>
         <div class="name">${escapeHTML(n.name)}</div>
         <div class="what"><b>What it does</b>: ${escapeHTML(n.what)}</div>
         <div class="link"><b>How it links</b>: ${escapeHTML(n.link)}</div>
+        ${ ts ? `<div class="ts"><b>Troubleshoot</b>${ts}</div>` : "" }
       `;
-      // Touch friendly tooltip trigger
       el.addEventListener('mouseenter', ()=> showTip(n.name, n.tags));
       el.addEventListener('click', ()=> showTip(n.name, n.tags));
       nodes.appendChild(el);
@@ -460,7 +582,6 @@
       edges.appendChild(path);
     }
 
-    // Pan and zoom transforms
     function applyTransform(){
       viewport.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
       zoomVal.textContent = Math.round(scale*100) + "%";
@@ -477,7 +598,7 @@
         maxX: Math.max(o.maxX, r.x + r.w), maxY: Math.max(o.maxY, r.y + r.h)
       }), {minX:Infinity, minY:Infinity, maxX:-Infinity, maxY:-Infinity});
 
-      const margin = 400;
+      const margin = 320;
       const w = (b.maxX - b.minX) + margin*2;
       const h = (b.maxY - b.minY) + margin*2;
 
@@ -492,7 +613,6 @@
       applyTransform();
     }
 
-    // Smooth zoom at screen point
     function smoothZoomAt(sx,sy,factor){
       const prev = scale;
       const target = clamp(prev*factor, minScale, maxScale);
@@ -517,14 +637,13 @@
       requestAnimationFrame(step);
     }
 
-    // Inertia after pan
     function startKinetic(){
-      const decay = 0.95; // friction
+      const decay = 0.95;
       const minVel = 0.02;
       const frame = ()=>{
         vx *= decay; vy *= decay;
         if(Math.abs(vx) < minVel && Math.abs(vy) < minVel){ kineticId = 0; return; }
-        tx += vx * 16 * 14; // scale velocity to pixels
+        tx += vx * 16 * 14;
         ty += vy * 16 * 14;
         applyTransform();
         kineticId = requestAnimationFrame(frame);
@@ -534,7 +653,6 @@
     }
     function stopKinetic(){ if(kineticId){ cancelAnimationFrame(kineticId); kineticId = 0; } }
 
-    // Pinch helpers
     function initPinch(){
       const pts = Array.from(pointers.values());
       const c = mid(pts[0], pts[1]);
@@ -554,10 +672,6 @@
       applyTransform();
     }
 
-    /* ---------------------------------------------------------
-       Collision separation
-       Simple nudge to avoid overlap while keeping things close
-    --------------------------------------------------------- */
     function separateCards(list, passes){
       for(let k=0;k<passes;k++){
         for(let i=0;i<list.length;i++){
@@ -567,7 +681,7 @@
               const dx = (a.x + a.w/2) - (b.x + b.w/2);
               const dy = (a.y + a.h/2) - (b.y + b.h/2);
               const n = Math.hypot(dx,dy) || 1;
-              const push = 18; // small nudge so cards end up near each other
+              const push = 16;
               const ux = dx/n, uy = dy/n;
               a.x += ux*push; a.y += uy*push;
               b.x -= ux*push; b.y -= uy*push;
@@ -580,7 +694,6 @@
       return !(a.x+a.w+12 < b.x || b.x+b.w+12 < a.x || a.y+a.h+12 < b.y || b.y+b.h+12 < a.y);
     }
 
-    /* Math and utils */
     function polar(cx,cy,r,deg){ const t=deg*Math.PI/180; return {x:cx+r*Math.cos(t), y:cy+r*Math.sin(t)}; }
     function norm(v){ const n=Math.hypot(v.x,v.y)||1; return {x:v.x/n, y:v.y/n}; }
     function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
@@ -588,6 +701,7 @@
     function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
     function mid(a,b){ return {x:(a.x+b.x)/2, y:(a.y+b.y)/2}; }
     function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+    function getAcr(text){ const m = text.match(/\(([^)]+)\)\.?$/); return m ? m[1] : "INFO"; }
   </script>
 </body>
 </html>
